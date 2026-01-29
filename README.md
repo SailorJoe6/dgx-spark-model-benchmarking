@@ -16,10 +16,12 @@ We evaluate against **two** multilingual SWE-bench datasets:
 
 | Dataset | Instances | Structure |
 |---------|-----------|-----------|
-| **SWE-bench Multilingual** | 300 | Single `test` split |
-| **SWE-bench-Live MultiLang** | 413 | 8 language splits (c, cpp, go, js, rust, java, ts, cs) |
+| **[SWE-bench Multilingual](https://www.swebench.com/multilingual.html)** | 300 | Single `test` split |
+| **SWE-bench-Live MultiLang** | 413 | 8 language splits |
 
-**SWE-bench-Live MultiLang** breakdown: C (31), C++ (17), Go (68), JS (75), Rust (45), Java (62), TS (87), C# (28)
+**SWE-bench Multilingual** breakdown (9 languages): C/C++ (42), Go (42), JS/TS (43), Ruby (44), PHP (43), Java (43), Rust (43)
+
+**SWE-bench-Live MultiLang** breakdown (8 languages): C (31), C++ (17), Go (68), JS (75), Rust (45), Java (62), TS (87), C# (28)
 
 ### Frameworks
 
