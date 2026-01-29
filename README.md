@@ -8,19 +8,25 @@ This repository contains all scripts, configs, tests, and documentation for the 
 
 ## Overview
 
-This project evaluates code language models on the **SWE-bench-Live/MultiLang** benchmark - a continuously updated benchmark for evaluating AI systems on real-world software engineering tasks across multiple programming languages.
+This project evaluates code language models on multilingual SWE-bench datasets using an agentic framework. Models are tested on their ability to solve real-world software engineering tasks across multiple programming languages.
+
+### Benchmarks
+
+We evaluate against **two** multilingual SWE-bench datasets:
+
+| Dataset | Instances | Structure |
+|---------|-----------|-----------|
+| **SWE-bench Multilingual** | 300 | Single `test` split |
+| **SWE-bench-Live MultiLang** | 413 | 8 language splits (c, cpp, go, js, rust, java, ts, cs) |
+
+**SWE-bench-Live MultiLang** breakdown: C (31), C++ (17), Go (68), JS (75), Rust (45), Java (62), TS (87), C# (28)
 
 ### Frameworks
 
 - **mini-swe-agent** - Lightweight agentic execution framework (forked with streaming support)
 - **live-swe-agent** - SWE-bench-tuned agent configs (our configs are based on `livesweagent_swebench.yaml`)
-- **SWE-bench-Live** - Benchmark dataset and evaluation harness
+- **SWE-bench / SWE-bench-Live** - Benchmark datasets and evaluation harnesses
 - **vLLM** - High-performance LLM serving on DGX Spark
-
-### Benchmark
-
-**SWE-bench-Live/MultiLang** includes 413 instances across 8 language splits:
-- C (31), C++ (17), Go (?), JavaScript (?), Rust (?), Java (?), TypeScript (?), C# (?)
 
 ## Directory Structure
 
