@@ -1,4 +1,4 @@
-# DeepSeek-Coder-V2-Lite-Instruct config based on livesweagent_swebench.yaml
+# DeepSeek config config based on livesweagent_swebench.yaml
 # Updated 2026-01-29 to use the SWE-bench tuned config (step_limit, boundaries, examples)
 
 agent:
@@ -150,16 +150,32 @@ agent:
     sed -i 's/old_string/new_string/' filename.py
     ```
 
-    ## Submission
-    When you've completed your work (reading, editing, testing), and cannot make further progress
-    issue exactly the following command:
+    ## Submission (Two-Step Process)
 
+    When you've completed your work, you MUST submit using this two-step process:
+
+    **Step 1: Stage your changes (separate command)**
     ```bash
-    echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git add -A && git diff --cached
+    git add -A
+    ```
+    Review the output carefully for any warnings or errors:
+    - Submodule warnings: You may need to exclude submodules with `git reset HEAD <submodule>`
+    - Large file warnings: Consider if these files should be included
+    - Other errors: Fix them before proceeding
+
+    If there are issues, fix them and run `git add -A` again until the output is clean.
+    You can preview your patch with `git diff --cached` before submitting.
+
+    **Step 2: Submit your patch (separate command, AFTER step 1)**
+    ```bash
+    echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached
     ```
 
-    This command will submit your work.
-    You cannot continue working (reading, editing, testing) in any way on this task after submitting.
+    **CRITICAL RULES:**
+    - Do NOT include `git add` in your submission command - files must already be staged from Step 1
+    - The submission command must ONLY be `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached`
+    - Any warnings or extra output in the submission will corrupt your patch
+    - You cannot continue working after submitting
     </instructions>
   action_observation_template: |
     <returncode>{{output.returncode}}</returncode>
@@ -218,7 +234,7 @@ agent:
     If you have completed your assignment, please consult the first message about how to
     submit your solution (you will not be able to continue working on this task after that).
   action_regex: '```bash\s*\n(.*?)\n```'
-  step_limit: 250
+  step_limit: 500
   cost_limit: 3.0
 
 environment:
