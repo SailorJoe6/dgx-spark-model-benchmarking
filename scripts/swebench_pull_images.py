@@ -13,6 +13,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable, Optional, Sequence
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+WORK_DIR = REPO_ROOT / "work" / "swebench"
 DEFAULT_IMAGE_FIELDS = (
     "docker_image",
     "image",
@@ -33,7 +35,7 @@ def load_dataset_swebench(split: str) -> Iterable[dict[str, Any]]:
         from datasets import load_dataset  # type: ignore
     except Exception as exc:  # pragma: no cover - import error path
         raise RuntimeError(
-            "datasets is required. Activate /home/sailorjoe6/work/swebench/.venv first."
+            f"datasets is required. Activate {WORK_DIR}/.venv first."
         ) from exc
     return load_dataset("SWE-bench/SWE-bench_Multilingual", split=split)
 
@@ -43,7 +45,7 @@ def load_dataset_live(splits: Sequence[str]) -> list[tuple[str, Iterable[dict[st
         from datasets import load_dataset  # type: ignore
     except Exception as exc:  # pragma: no cover - import error path
         raise RuntimeError(
-            "datasets is required. Activate /home/sailorjoe6/work/swebench/.venv first."
+            f"datasets is required. Activate {WORK_DIR}/.venv first."
         ) from exc
     dataset = load_dataset("SWE-bench-Live/MultiLang")
     if not splits:

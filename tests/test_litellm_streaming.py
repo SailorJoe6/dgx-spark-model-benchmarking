@@ -9,9 +9,15 @@ Requires: vLLM running at http://localhost:8000/v1
 import os
 import sys
 import unittest
+from pathlib import Path
 
 # Add mini-swe-agent to path
-sys.path.insert(0, os.path.expanduser("~/work/swebench/mini-swe-agent/src"))
+REPO_ROOT = Path(__file__).resolve().parents[1]
+MINI_SWE_AGENT_SRC = REPO_ROOT / "work" / "swebench" / "mini-swe-agent" / "src"
+if MINI_SWE_AGENT_SRC.exists():
+    sys.path.insert(0, str(MINI_SWE_AGENT_SRC))
+else:
+    raise unittest.SkipTest(f"mini-swe-agent not found at {MINI_SWE_AGENT_SRC}")
 
 from minisweagent.models.litellm_model import LitellmModel, LitellmModelConfig
 

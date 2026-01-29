@@ -1,6 +1,6 @@
 # SWE-bench Multilingual Evaluation Runbook (DGX Spark)
 
-This runbook documents how to execute the multilingual SWE-bench evaluations defined in `ralph/plans/SPECIFICATION.md` using vLLM on DGX Spark. It is intentionally structured to mirror the execution plan and to capture reproducible results.
+This runbook documents how to execute the multilingual SWE-bench evaluations using vLLM on DGX Spark. It is intentionally structured to capture reproducible results.
 
 ## Scope
 
@@ -38,7 +38,7 @@ This runbook documents how to execute the multilingual SWE-bench evaluations def
 Suggested local working directory structure (outside this repo):
 
 ```
-~/work/swebench/
+/home/sailorjoe6/Code/swebench-eval/work/swebench/
   SWE-bench/
   SWE-bench-Live/
   runs/
@@ -52,23 +52,26 @@ The recommended evaluation approach uses **mini-swe-agent**, an iterative agent 
 
 ### Framework Setup
 
+External dependencies are vendored as submodules under `work/swebench/`.
+
 ```bash
-cd ~/work/swebench
-git clone https://github.com/SWE-agent/mini-swe-agent.git
-cd mini-swe-agent
-source ~/work/swebench/.venv/bin/activate
-pip install -e .
+cd /home/sailorjoe6/Code/swebench-eval
+git submodule update --init --recursive
+source /home/sailorjoe6/Code/swebench-eval/work/swebench/.venv/bin/activate
+pip install -e work/swebench/mini-swe-agent
 ```
 
-Clone **live-swe-agent** for optimized configuration files:
+`live-swe-agent` is available at `work/swebench/live-swe-agent`.
+
+Record submodule commit hashes for reporting:
 ```bash
-cd ~/work/swebench
-git clone https://github.com/OpenAutoCoder/live-swe-agent.git
+cd /home/sailorjoe6/Code/swebench-eval/work/swebench/mini-swe-agent && git rev-parse HEAD
+cd /home/sailorjoe6/Code/swebench-eval/work/swebench/live-swe-agent && git rev-parse HEAD
 ```
 
 ### Model Configurations
 
-Each model has a dedicated config file at `~/work/swebench/configs/`:
+Each model has a dedicated config file at `/home/sailorjoe6/Code/swebench-eval/work/swebench/configs/`:
 
 | Config File | Model | vLLM Model ID |
 |---|---|---|
@@ -89,7 +92,7 @@ All configs are based on `live-swe-agent/config/livesweagent.yaml` with these mo
 
 **SWE-bench Multilingual:**
 ```bash
-cd ~/work/swebench && source .venv/bin/activate
+cd /home/sailorjoe6/Code/swebench-eval/work/swebench && source .venv/bin/activate
 mini-extra swebench \
   --config configs/qwen3-livesweagent.yaml \
   --subset multilingual \
@@ -127,20 +130,17 @@ python -m unittest tests.test_swebench_configs -v
 
 ### Harness Setup
 
-1. Clone the harness repositories:
+1. Ensure harness submodules are initialized:
 
 ```
-cd ~/work/swebench
-
-git clone https://github.com/SWE-bench/SWE-bench.git
-
-git clone https://github.com/microsoft/SWE-bench-Live.git
+cd /home/sailorjoe6/Code/swebench-eval
+git submodule update --init --recursive
 ```
 
 2. Record harness commit hashes for reporting:
 
 ```
-cd ~/work/swebench/SWE-bench
+cd /home/sailorjoe6/Code/swebench-eval/work/swebench/SWE-bench
 
 git rev-parse HEAD
 ```
@@ -148,11 +148,11 @@ git rev-parse HEAD
 3. Prepare SWE-bench-Live for MultiLang evaluation (submodule init + evaluation fix):
 
 ```
-python scripts/swebench_live_prepare.py --repo ~/work/swebench/SWE-bench-Live
+python scripts/swebench_live_prepare.py --repo /home/sailorjoe6/Code/swebench-eval/work/swebench/SWE-bench-Live
 ```
 
 ```
-cd ~/work/swebench/SWE-bench-Live
+cd /home/sailorjoe6/Code/swebench-eval/work/swebench/SWE-bench-Live
 
 git rev-parse HEAD
 ```
@@ -166,7 +166,7 @@ Download datasets using each harness's recommended method. Record dataset versio
 
 ## vLLM Serving
 
-Use the exact serve commands from `ralph/plans/SPECIFICATION.md`. Start one model at a time, and only proceed to the next model after both suites complete.
+Use the exact serve commands from the vLLM section below. Start one model at a time, and only proceed to the next model after both suites complete.
 
 ### ⚠️ DGX Spark Unified Memory Constraints
 
@@ -179,7 +179,7 @@ Use the exact serve commands from `ralph/plans/SPECIFICATION.md`. Start one mode
 
 Without these parameters, vLLM consumes ~104GB leaving only ~4GB for system operations, causing crashes during agent evaluation. With these parameters: model weights (~29GB) + KV cache (~70GB) + system (~11GB) = ~110GB stable usage.
 
-See `ralph/plans/SPECIFICATION.md` Section 3.1 for memory breakdown and investigation details.
+See the memory notes in this runbook for details.
 
 ### Example (Qwen3)
 
@@ -209,7 +209,7 @@ For each model, run both suites in order:
 Use `scripts/swebench_generate_predictions.py` to generate patch predictions from the vLLM OpenAI-compatible endpoint. The script sanitizes patches by default (strips code fences and trims whitespace) and writes both `model_patch` and `pred_patch` for compatibility with both harnesses. Activate the SWE-bench venv first:
 
 ```
-source ~/work/swebench/.venv/bin/activate
+source /home/sailorjoe6/Code/swebench-eval/work/swebench/.venv/bin/activate
 ```
 
 SWE-bench Multilingual (JSONL output for `swebench.harness.run_evaluation`):
@@ -218,7 +218,7 @@ SWE-bench Multilingual (JSONL output for `swebench.harness.run_evaluation`):
 python scripts/swebench_generate_predictions.py \
   --suite swebench-multilingual \
   --model "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8" \
-  --output ~/work/swebench/runs/swebench-multilingual/qwen3-predictions.jsonl
+  --output /home/sailorjoe6/Code/swebench-eval/work/swebench/runs/swebench-multilingual/qwen3-predictions.jsonl
 ```
 
 SWE-bench-Live MultiLang (JSON mapping for `evaluation.evaluation`):
@@ -227,7 +227,7 @@ SWE-bench-Live MultiLang (JSON mapping for `evaluation.evaluation`):
 python scripts/swebench_generate_predictions.py \
   --suite swebench-live-multilang \
   --model "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8" \
-  --output ~/work/swebench/runs/swebench-live-multilang/qwen3-predictions.json
+  --output /home/sailorjoe6/Code/swebench-eval/work/swebench/runs/swebench-live-multilang/qwen3-predictions.json
 ```
 
 Use `--max-instances` for a short smoke test and `--dry-run` to validate output formatting without calling the API.
@@ -238,7 +238,7 @@ Use `--no-sanitize-diff` only if you need raw model output for debugging.
 Capture logs for each run in:
 
 ```
-ralph/logs/swebench/<suite>/<model>/<run_id>/
+logs/<suite>/<model>/<run_id>/
 ```
 
 Record any flags or deviations (Docker vs native, max model length, trust-remote-code, etc.).
@@ -249,27 +249,27 @@ Run the evaluation from the SWE-bench harness repo (installed editable). The har
 write `evaluation_results/` plus `logs/run_evaluation/` under the current working directory.
 
 ```
-cd ~/work/swebench/SWE-bench
+cd /home/sailorjoe6/Code/swebench-eval/work/swebench/SWE-bench
 
 python -m swebench.harness.run_evaluation \
   --dataset_name SWE-bench/SWE-bench_Multilingual \
   --split test \
-  --predictions_path ~/work/swebench/runs/swebench-multilingual/qwen3-predictions.jsonl \
+  --predictions_path /home/sailorjoe6/Code/swebench-eval/work/swebench/runs/swebench-multilingual/qwen3-predictions.jsonl \
   --max_workers 8 \
   --run_id qwen3-swebench-multilingual \
-  --report_dir ~/work/swebench/runs/swebench-multilingual/reports
+  --report_dir /home/sailorjoe6/Code/swebench-eval/work/swebench/runs/swebench-multilingual/reports
 ```
 
 After each run, copy logs/results into the repo logs directory:
 
 ```
 rsync -a --delete \
-  ~/work/swebench/SWE-bench/logs/run_evaluation/qwen3-swebench-multilingual/ \
-  ralph/logs/swebench/swebench-multilingual/qwen3/qwen3-swebench-multilingual/
+  /home/sailorjoe6/Code/swebench-eval/work/swebench/SWE-bench/logs/run_evaluation/qwen3-swebench-multilingual/ \
+  logs/swebench-multilingual/qwen3/qwen3-swebench-multilingual/
 
 rsync -a --delete \
-  ~/work/swebench/SWE-bench/evaluation_results/ \
-  ralph/logs/swebench/swebench-multilingual/qwen3/qwen3-swebench-multilingual/evaluation_results/
+  /home/sailorjoe6/Code/swebench-eval/work/swebench/SWE-bench/evaluation_results/ \
+  logs/swebench-multilingual/qwen3/qwen3-swebench-multilingual/evaluation_results/
 ```
 
 Adjust `--max_workers` for available CPU capacity.
@@ -280,15 +280,15 @@ Run the evaluation from the SWE-bench-Live repo. MultiLang uses per-language spl
 outputs separately. The harness writes results into the provided `--output_dir`.
 
 ```
-cd ~/work/swebench/SWE-bench-Live
+cd /home/sailorjoe6/Code/swebench-eval/work/swebench/SWE-bench-Live
 
 for split in c cpp go js rust java ts cs; do
   python -m evaluation.evaluation \
     --dataset SWE-bench-Live/MultiLang \
     --split "${split}" \
     --platform linux \
-    --patch_dir ~/work/swebench/runs/swebench-live-multilang/qwen3-predictions.json \
-    --output_dir ~/work/swebench/runs/swebench-live-multilang/results/qwen3/"${split}" \
+    --patch_dir /home/sailorjoe6/Code/swebench-eval/work/swebench/runs/swebench-live-multilang/qwen3-predictions.json \
+    --output_dir /home/sailorjoe6/Code/swebench-eval/work/swebench/runs/swebench-live-multilang/results/qwen3/"${split}" \
     --workers 10 \
     --overwrite 0
 done
@@ -298,8 +298,8 @@ Copy results into the repo logs directory:
 
 ```
 rsync -a --delete \
-  ~/work/swebench/runs/swebench-live-multilang/results/qwen3/ \
-  ralph/logs/swebench/swebench-live-multilang/qwen3/
+  /home/sailorjoe6/Code/swebench-eval/work/swebench/runs/swebench-live-multilang/results/qwen3/ \
+  logs/swebench-live-multilang/qwen3/
 ```
 
 Use `--overwrite 1` when rerunning a split.
@@ -325,7 +325,7 @@ Use `--dry-run` to list images without pulling, and `--output <path>` to save th
 
 ## Reporting
 
-Use the report template at `ralph/plans/SWE_BENCH_MULTILINGUAL_REPORT_TEMPLATE.md`.
+Use the report template at `docs/SWE_BENCH_MULTILINGUAL_REPORT_TEMPLATE.md`.
 
 Minimum metrics per model x suite:
 
@@ -341,8 +341,8 @@ the SWE-bench harness report and SWE-bench-Live results directories:
 ```
 python scripts/swebench_report_metrics.py \
   --model "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8" \
-  --swebench-report ~/work/swebench/SWE-bench/Qwen__Qwen3-Coder-30B-A3B-Instruct-FP8.qwen3-swebench-multilingual.json \
-  --live-results-root ~/work/swebench/runs/swebench-live-multilang/results/qwen3 \
+  --swebench-report /home/sailorjoe6/Code/swebench-eval/work/swebench/SWE-bench/Qwen__Qwen3-Coder-30B-A3B-Instruct-FP8.qwen3-swebench-multilingual.json \
+  --live-results-root /home/sailorjoe6/Code/swebench-eval/work/swebench/runs/swebench-live-multilang/results/qwen3 \
   --format markdown
 ```
 

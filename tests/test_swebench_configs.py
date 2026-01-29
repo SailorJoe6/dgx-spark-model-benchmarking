@@ -6,13 +6,12 @@ fixes applied (submission command, format_error_template, timeout_template).
 """
 
 import os
+from pathlib import Path
 import unittest
 
 import yaml
 
-CONFIGS_DIR = os.path.join(
-    os.path.expanduser("~"), "work", "swebench", "configs"
-)
+CONFIGS_DIR = str(Path(__file__).resolve().parents[1] / "configs")
 
 EXPECTED_CONFIGS = {
     "qwen3": {

@@ -38,8 +38,6 @@ swebench-eval/
 ├── scripts/           # Helper scripts (generation, image pulling, memory monitoring)
 ├── tests/             # Test suite for configs and scripts
 ├── docs/              # Documentation
-│   ├── SPECIFICATION.md    # Project specification
-│   ├── EXECUTION_PLAN.md   # Detailed execution plan
 │   └── *.md                # Additional documentation
 └── README.md          # This file
 ```
@@ -99,13 +97,13 @@ This fixes an issue where git warnings (submodules, large files) were corrupting
 
 ## Usage
 
-See [EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md) for detailed instructions.
+See `docs/swe-bench-multilingual-evaluation.md` for detailed instructions.
 
 ### Quick Start
 
 ```bash
 # Activate environment
-cd ~/work/swebench && source .venv/bin/activate
+cd /home/sailorjoe6/Code/swebench-eval/work/swebench && source .venv/bin/activate
 
 # Run evaluation for a split
 mini-extra swebench \

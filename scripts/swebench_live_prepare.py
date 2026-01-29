@@ -53,9 +53,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Prepare SWE-bench-Live repo for MultiLang evaluation."
     )
+    default_repo = (
+        Path(__file__).resolve().parents[1] / "work" / "swebench" / "SWE-bench-Live"
+    )
     parser.add_argument(
         "--repo",
-        default="~/work/swebench/SWE-bench-Live",
+        default=str(default_repo),
         help="Path to the SWE-bench-Live repo.",
     )
     args = parser.parse_args()

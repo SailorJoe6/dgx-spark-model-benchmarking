@@ -22,8 +22,7 @@ This document summarizes the vLLM model compatibility work for DGX Spark and poi
 
 ## Where to find details
 
-- Full test log and run commands: `ralph/plans/VLLM_TEST_RESULTS.md`
-- Execution plan and decisions: `ralph/plans/EXECUTION_PLAN.md`
+- Execution decisions: see `docs/CURRENT_STATUS.md`.
 - Playbook support matrix (published): `nvidia/vllm/README.md`
 
 ## Notes for future work

@@ -3,11 +3,13 @@
 # Logs system memory, swap, and Docker container memory every 5 seconds
 #
 # Usage: ./monitor_memory.sh [output_log_file]
-# Default: /home/sailorjoe6/work/swebench/runs/memory-monitor-$(date +%Y%m%d-%H%M%S).log
+# Default: <repo>/work/swebench/runs/memory-monitor-$(date +%Y%m%d-%H%M%S).log
 
 set -e
 
-LOG_FILE="${1:-/home/sailorjoe6/work/swebench/runs/memory-monitor-$(date +%Y%m%d-%H%M%S).log}"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WORK_DIR="$ROOT_DIR/work/swebench"
+LOG_FILE="${1:-$WORK_DIR/runs/memory-monitor-$(date +%Y%m%d-%H%M%S).log}"
 INTERVAL=5
 
 mkdir -p "$(dirname "$LOG_FILE")"

@@ -9,8 +9,11 @@ import os
 import sys
 import time
 import urllib.request
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+WORK_DIR = REPO_ROOT / "work" / "swebench"
 DEFAULT_API_BASE = "http://localhost:8000/v1"
 DEFAULT_SYSTEM_PROMPT = (
     "You are an expert software engineer. Produce a unified diff patch that fixes the issue. "
@@ -47,7 +50,7 @@ def load_dataset_swebench(split: str) -> Iterable[Dict[str, Any]]:
         from datasets import load_dataset  # type: ignore
     except Exception as exc:  # pragma: no cover - import error path
         raise RuntimeError(
-            "datasets is required. Activate /home/sailorjoe6/work/swebench/.venv first."
+            f"datasets is required. Activate {WORK_DIR}/.venv first."
         ) from exc
     return load_dataset("SWE-bench/SWE-bench_Multilingual", split=split)
 
@@ -57,7 +60,7 @@ def load_dataset_live(splits: Sequence[str]) -> List[Tuple[str, Iterable[Dict[st
         from datasets import load_dataset  # type: ignore
     except Exception as exc:  # pragma: no cover - import error path
         raise RuntimeError(
-            "datasets is required. Activate /home/sailorjoe6/work/swebench/.venv first."
+            f"datasets is required. Activate {WORK_DIR}/.venv first."
         ) from exc
     dataset = load_dataset("SWE-bench-Live/MultiLang")
     if not splits:

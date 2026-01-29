@@ -1,0 +1,12 @@
+[submodule "work/swebench/mini-swe-agent"]
+	path = work/swebench/mini-swe-agent
+	url = https://github.com/SailorJoe6/mini-swe-agent.git
+[submodule "work/swebench/live-swe-agent"]
+	path = work/swebench/live-swe-agent
+	url = https://github.com/OpenAutoCoder/live-swe-agent.git
+[submodule "work/swebench/SWE-bench"]
+	path = work/swebench/SWE-bench
+	url = https://github.com/SWE-bench/SWE-bench.git
+[submodule "work/swebench/SWE-bench-Live"]
+	path = work/swebench/SWE-bench-Live
+	url = https://github.com/microsoft/SWE-bench-Live.git
