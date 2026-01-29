@@ -2,6 +2,17 @@
 
 Evaluation infrastructure for benchmarking code LLMs on SWE-bench-Live/MultiLang using the DGX Spark platform.
 
+## Repository
+
+**Canonical Location:** `git@github.com:SailorJoe6/dgx-spark-model-benchmarking.git`
+
+This repository contains all scripts, configs, tests, and documentation for the SWE-bench-Live/MultiLang evaluation project. While it may be checked out locally within other projects, this is the authoritative source.
+
+**Clone:**
+```bash
+git clone git@github.com:SailorJoe6/dgx-spark-model-benchmarking.git
+```
+
 ## Overview
 
 This project provides tools for running agentic evaluations of code language models using:
