@@ -4,55 +4,63 @@ Evaluation infrastructure for benchmarking code LLMs on SWE-bench-Live/MultiLang
 
 ## Repository
 
-**Canonical Location:** `git@github.com:SailorJoe6/dgx-spark-model-benchmarking.git`
-
 This repository contains all scripts, configs, tests, and documentation for the SWE-bench-Live/MultiLang evaluation project. While it may be checked out locally within other projects, this is the authoritative source.
-
-**Clone:**
-```bash
-git clone git@github.com:SailorJoe6/dgx-spark-model-benchmarking.git
-```
 
 ## Overview
 
-This project provides tools for running agentic evaluations of code language models using:
-- **mini-swe-agent** - Agentic framework for code tasks
-- **SWE-bench-Live/MultiLang** - Multilingual benchmark (C, C++, Go, JS, Rust, Java, TypeScript, C#)
-- **vLLM** - High-performance LLM serving
+This project evaluates code language models on the **SWE-bench-Live/MultiLang** benchmark - a continuously updated benchmark for evaluating AI systems on real-world software engineering tasks across multiple programming languages.
+
+### Frameworks
+
+- **mini-swe-agent** - Lightweight agentic execution framework (forked with streaming support)
+- **live-swe-agent** - SWE-bench-tuned agent configs (our configs are based on `livesweagent_swebench.yaml`)
+- **SWE-bench-Live** - Benchmark dataset and evaluation harness
+- **vLLM** - High-performance LLM serving on DGX Spark
+
+### Benchmark
+
+**SWE-bench-Live/MultiLang** includes 413 instances across 8 language splits:
+- C (31), C++ (17), Go (?), JavaScript (?), Rust (?), Java (?), TypeScript (?), C# (?)
 
 ## Directory Structure
 
 ```
 swebench-eval/
-├── configs/           # Model configuration files for mini-swe-agent
+├── configs/           # Model configs (based on live-swe-agent templates)
 ├── scripts/           # Helper scripts (generation, image pulling, memory monitoring)
 ├── tests/             # Test suite for configs and scripts
 ├── docs/              # Documentation
-│   ├── SPECIFICATION.md    # (symlink) Project specification
-│   ├── EXECUTION_PLAN.md   # (symlink) Detailed execution plan
+│   ├── SPECIFICATION.md    # Project specification
+│   ├── EXECUTION_PLAN.md   # Detailed execution plan
 │   └── *.md                # Additional documentation
 └── README.md          # This file
 ```
 
 ## Related Repositories
 
-- [mini-swe-agent fork](https://github.com/SailorJoe6/mini-swe-agent) - Fork with streaming support
-- [SWE-bench-Live](https://github.com/SWE-bench-Live) - Benchmark dataset
-- [vLLM](https://github.com/vllm-project/vllm) - LLM serving
+| Repository | Purpose |
+|------------|---------|
+| [mini-swe-agent fork](https://github.com/SailorJoe6/mini-swe-agent) | Execution framework (with streaming support) |
+| [live-swe-agent](https://github.com/SWE-bench-Live/live-swe-agent) | SWE-bench-tuned agent configs (upstream reference) |
+| [SWE-bench-Live](https://github.com/SWE-bench-Live/SWE-bench-Live) | Benchmark dataset and evaluation harness |
+| [vLLM](https://github.com/vllm-project/vllm) | LLM serving |
 
 ## Model Configs
 
-Located in `configs/`:
-- `qwen3-livesweagent.yaml` - Qwen3-Coder-30B-A3B-Instruct-FP8
-- `deepseek-livesweagent.yaml` - DeepSeek-Coder-V2-Lite-Instruct
-- `mixtral-livesweagent.yaml` - Mixtral-8x7B-Instruct-v0.1
-- `gptoss-livesweagent.yaml` - GPT-OSS-001
+Located in `configs/`, based on live-swe-agent's `livesweagent_swebench.yaml`:
+
+| Config | Model |
+|--------|-------|
+| `qwen3-livesweagent.yaml` | Qwen3-Coder-30B-A3B-Instruct-FP8 |
+| `deepseek-livesweagent.yaml` | DeepSeek-Coder-V2-Lite-Instruct |
+| `mixtral-livesweagent.yaml` | Mixtral-8x7B-Instruct-v0.1 |
+| `gptoss-livesweagent.yaml` | GPT-OSS-001 |
 
 ## Key Features
 
 - **Streaming mode** for vLLM to prevent HTTP timeouts on long generations
 - **Pipelined evaluation** - Run test harness in parallel with agent generation
-- **Memory-safe operation** - Optimized for DGX Spark's unified memory architecture
+- **Memory-safe operation** - Optimized for DGX Spark's unified memory architecture (119GB)
 
 ## Usage
 
