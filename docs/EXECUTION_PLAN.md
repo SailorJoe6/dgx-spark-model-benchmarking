@@ -872,10 +872,9 @@ You MUST submit your solution NOW.
 
 **Feature Added:** Real-time streaming of agent messages to a JSONL file for monitoring active evaluations.
 
-**Use Case:** During long evaluations, you can monitor an agent's progress in real-time:
-```bash
-tail -f <instance_dir>/<instance_id>.traj.jsonl | jq .
-```
+**Note:** This is a feature for human operators to monitor long-running evaluations. The AI agent executing this plan does NOT need to use this feature - evaluations should be started with `nohup` and allowed to run to completion unattended.
+
+**For Human Operators:** To monitor an active instance: `tail -f <instance_id>.traj.jsonl | jq .`
 
 **Implementation Details:**
 
