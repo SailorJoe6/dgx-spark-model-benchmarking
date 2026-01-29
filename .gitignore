@@ -1,2 +1,9 @@
-ralph/
+work/swebench/.venv/
 work/swebench/runs/
+work/swebench/configs
+work/swebench/scripts
+logs/**
+!logs/README.md
+!logs/memory-investigation.md
+scripts/__pycache__/
+tests/__pycache__/
