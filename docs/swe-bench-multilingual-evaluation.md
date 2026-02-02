@@ -24,7 +24,6 @@ This runbook documents how to execute the multilingual SWE-bench evaluations usi
   export DOCKER_DEFAULT_PLATFORM=linux/amd64
   ```
   Verify with: `docker run --rm --platform=linux/amd64 alpine:3.19 uname -m` (should print `x86_64`).
-  **Note:** binfmt registrations are not persistent across reboots. Re-run the binfmt install after any reboot.
 - Docker Hub rate limits can break evaluations. Authenticate before running harnesses:
   ```
   docker login
@@ -85,9 +84,6 @@ All configs are based on `live-swe-agent/config/livesweagent.yaml` with these mo
 - **Model endpoint**: Points to local vLLM at `http://localhost:8000/v1`
 - **Cost tracking**: Set to `ignore_errors` (local inference has no cost)
 - **Working directory**: Set to `/testbed` (Docker container path)
-- **Docker platform**: `run_args` includes `--platform=linux/amd64` to run SWE-bench images on aarch64 hosts
-- **Output cap**: `model_kwargs.max_completion_tokens: 65536` (per Qwen3 guidance)
-- **XML stop sequences**: `model_kwargs.stop: ["</files>", "</output>"]` to prevent runaway XML tag hallucinations
 - **Submission command fix**: Includes `git add -A && git diff --cached` to capture patches
 - **Timeout template**: Added (required by mini-swe-agent but missing from base config)
 - **System info**: Hardcoded `Linux x86_64 (Docker container)` instead of Jinja2 variables
@@ -118,45 +114,6 @@ done
 ```
 
 **Important**: Do NOT pass `--model` on the command line. The model is configured in the YAML file. Passing `--model` on the CLI overrides the config and causes model name mismatch errors.
-
-### Wrapper Scripts (Agentic)
-
-For reproducible runs, use the helper scripts under `scripts/agentic/`:
-
-**Run SWE-bench Multilingual:**
-```bash
-scripts/agentic/run_swebench_multilingual.sh \
-  qwen3 \
-  /home/sailorjoe6/Code/swebench-eval/work/swebench/configs/qwen3-livesweagent.yaml \
-  /home/sailorjoe6/Code/swebench-eval/logs/swebench-multilingual/qwen3/
-```
-
-**Run SWE-bench-Live MultiLang (all splits):**
-```bash
-scripts/agentic/run_swebench_live_multilang.sh \
-  qwen3 \
-  /home/sailorjoe6/Code/swebench-eval/work/swebench/configs/qwen3-livesweagent.yaml \
-  /home/sailorjoe6/Code/swebench-eval/logs/swebench-live-multilang/qwen3/
-```
-
-Script environment overrides:
-- `WORKDIR` (default: `<repo>/work/swebench`)
-- `WORKERS` (default: 1)
-- `CONTINUE_ON_ERROR` (default: 1, for live-multilang script)
-
-**Start/stop vLLM containers:**
-```bash
-# Start (model key: qwen3|deepseek|mixtral|gptoss)
-scripts/agentic/serve_vllm_model.sh qwen3
-
-# Stop
-scripts/agentic/stop_vllm_model.sh qwen3
-```
-
-vLLM script environment overrides:
-`VLLM_IMAGE`, `VLLM_PORT`, `VLLM_MAX_MODEL_LEN`, `VLLM_GPU_MEMORY_UTIL`,
-`VLLM_MAX_NUM_SEQS`, `VLLM_KV_CACHE_DTYPE`, `VLLM_EXTRA_ARGS`,
-`VLLM_HEALTH_URL`, `VLLM_HEALTH_TIMEOUT`.
 
 ### Config Validation Tests
 
