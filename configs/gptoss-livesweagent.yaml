@@ -1,4 +1,4 @@
-# GPT-OSS-001 config based on livesweagent_swebench.yaml
+# Qwen3-Coder-30B config based on livesweagent_swebench.yaml
 # Updated 2026-01-29 to use the SWE-bench tuned config (step_limit, boundaries, examples)
 
 agent:
@@ -6,18 +6,16 @@ agent:
     You are a helpful assistant that can interact multiple times with a computer shell to solve programming tasks.
     Your response must contain exactly ONE bash code block with ONE command (or commands connected with && or ||).
 
-    Include a THOUGHT section before your command where you explain your reasoning process.
-    Format your response as shown in <format_example>.
+    Include a THOUGHT section before your command where you explain your reasoning process.  The required format for your response is shown below.
+    Failure to follow these rules will cause your response to be rejected. 
+    Format your response as follows:
 
-    <format_example>
     THOUGHT: Your reasoning and analysis here
 
     ```bash
     your_command_here
     ```
-    </format_example>
-
-    Failure to follow these rules will cause your response to be rejected.
+    
   instance_template: |
     <pr_description>
     Consider the following PR description:
@@ -42,12 +40,24 @@ agent:
     - MODIFY: Regular source code files in /testbed (this is the working directory for all your subsequent commands)
     - DO NOT MODIFY: Tests, configuration files (pyproject.toml, setup.cfg, etc.)
 
-    ## Recommended Workflow
+    ## Required Workflow
     1. Analyze the codebase by finding and reading relevant files
     2. Create a script to reproduce the issue
     3. Edit the source code to resolve the issue
-    4. Verify your fix works by running your script again
-    5. Test edge cases to ensure your fix is robust
+    4. Run the FAIL_TO_PASS tests (or the smallest relevant test subset) and record which tests fail
+    5. Verify your fix works by re-running the FAIL_TO_PASS tests
+    6. Test edge cases to ensure your fix is robust (if feasible)
+
+    ## Test Requirements (MANDATORY)
+    - You MUST run the FAIL_TO_PASS tests or the smallest relevant test subset for the issue.
+    - If running the full test suite is feasible, you SHOULD do so, but do not block progress on it.
+    - You must consider test results in the context of the PR description before submitting.
+    - Keep working until test results clearly indicate the PR is fixed.
+
+    ## CRITICAL Unblocking Behavior (MANDATORY)
+    - If you become blocked, attempt to unblock yourself using available tools (adjust commands, install missing tools, etc.).
+    - If still blocked, consider installing or generating a tool to unblock yourself.
+    - If you cannot unblock yourself even by installing or generating any tools, clearly explain why, then submit an empty patch.
 
     ## Command Execution Rules
     You are operating in an environment where
@@ -150,6 +160,7 @@ agent:
     sed -i 's/old_string/new_string/' filename.py
     ```
 
+
     ## Submission (Two-Step Process)
 
     When you've completed your work, you MUST submit using this two-step process:
@@ -176,6 +187,16 @@ agent:
     - The submission command must ONLY be `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached`
     - Any warnings or extra output in the submission will corrupt your patch
     - You cannot continue working after submitting
+
+
+    
+    ## CRITICAL CONSTRAINTS (MANDATORY)
+    - You MUST work inside /testbed only. Never write files in /tmp or outside /testbed.
+    - Do NOT create placeholder or documentation-only files. Do actual code edits in the repository.
+    - If you cannot find relevant files, you MUST search the repo (e.g., use find/rg) before any write.
+    - Any command that only echoes a summary or writes to /tmp is invalid.
+    - Do NOT output XML/HTML-style tags (e.g., </files>, </output>, <files>).
+    
     </instructions>
   action_observation_template: |
     <returncode>{{output.returncode}}</returncode>
@@ -247,11 +268,19 @@ environment:
     PIP_PROGRESS_BAR: 'off'
     TQDM_DISABLE: '1'
   environment_class: docker
+  run_args:
+    - "--rm"
+    - "--platform=linux/amd64"
 
 model:
-  model_name: "hosted_vllm/nvidia/GPT-OSS-001"
+  model_name: "hosted_vllm/openai/gpt-oss-120b"
   cost_tracking: "ignore_errors"
+  use_streaming: true
   model_kwargs:
+    max_completion_tokens: 65536
+    stop:
+      - "</files>"
+      - "</output>"
     temperature: 0.0
     drop_params: true
     api_base: "http://localhost:8000/v1"

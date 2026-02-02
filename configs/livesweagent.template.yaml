@@ -273,7 +273,7 @@ environment:
     - "--platform=linux/amd64"
 
 model:
-  model_name: "hosted_vllm/MaziyarPanahi/Mixtral-8x22B-Instruct-v0.1-AWQ"
+  model_name: "{{MODEL_NAME}}"
   cost_tracking: "ignore_errors"
   use_streaming: true
   model_kwargs:
