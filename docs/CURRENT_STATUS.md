@@ -19,7 +19,7 @@
 - 🔄 Phase 3.4 memory investigation is partially complete; controlled testing and UMA cache flushing validation are still required.
 
 **Not Started / Pending:**
-- ⏳ Phase 1 cleanup items (close legacy beads issue, finalize legacy script audit)
+- ⏳ Phase 1 alignment tasks (legacy script audit, timeout policy decision, blocked workflow doc, memory monitor runbook)
 - ⏳ Phase 4: All model evaluations (Qwen3, DeepSeek, Mixtral, GPT-OSS)
 - ⏳ Phase 5-6: Evaluation reports + cleanup
 
@@ -40,6 +40,7 @@
 - `swebench-eval-tnt`: Mixtral evaluation (open)
 - `swebench-eval-g8d`: GPT-OSS evaluation (open)
 - `swebench-eval-6n1`: Final report (open)
+- `swebench-eval-ovr`: Phase 1 alignment tasks (open)
 
 ---
 
