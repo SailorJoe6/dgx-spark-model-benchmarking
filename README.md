@@ -103,7 +103,7 @@ See `docs/swe-bench-multilingual-evaluation.md` for detailed instructions.
 
 ```bash
 # Activate environment
-cd work/swebench && source .venv/bin/activate
+cd /home/sailorjoe6/Code/swebench-eval/work/swebench && source .venv/bin/activate
 
 # Run evaluation for a split
 mini-extra swebench \
