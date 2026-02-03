@@ -1,0 +1,13 @@
+# --- Global Defaults (OpenAI) ---
+model_provider = "openai"
+
+# --- vLLM Provider Definition ---
+[model_providers.vllm]
+name = "vLLM"
+base_url = "http://localhost:8000/v1"
+wire_api = "chat"
+
+# --- Local vLLM Profile ---
+[profiles.local]
+model_provider = "vllm"
+model = "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"

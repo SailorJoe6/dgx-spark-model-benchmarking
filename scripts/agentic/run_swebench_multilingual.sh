@@ -62,6 +62,17 @@ if [[ ! -f "${WORKDIR}/.venv/bin/activate" ]]; then
   exit 1
 fi
 
+require_nohup() {
+  if [[ -t 1 ]]; then
+    echo "ERROR: This script must be run under nohup (stdout is a TTY)." >&2
+    echo "Example:" >&2
+    echo "  nohup $0 ${MODEL_LABEL} ${CONFIG_PATH} ${OUTPUT_DIR} > ${OUTPUT_DIR}/nohup.log 2>&1 &" >&2
+    exit 1
+  fi
+}
+
+require_nohup
+
 require_amd64_emulation() {
   local platform="${DOCKER_DEFAULT_PLATFORM:-}"
   if [[ "${platform}" != "linux/amd64" ]]; then
