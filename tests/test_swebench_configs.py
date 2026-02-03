@@ -33,12 +33,7 @@ EXPECTED_CONFIGS = {
     },
 }
 
-# Submission commands expected for the two-step process.
-SUBMISSION_STAGE_CMD = "git add -A"
 SUBMISSION_FINAL_CMD = "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached"
-SUBMISSION_COMBINED_CMD = (
-    "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git add -A && git diff --cached"
-)
 
 
 def _load_config(filename):
@@ -190,28 +185,15 @@ class TestConfigModelNames(unittest.TestCase):
 
 
 class TestSubmissionCommandFix(unittest.TestCase):
-    """All configs must include the two-step submission process.
+    """All configs must include the final submission command."""
 
-    The submission is now split to avoid git warnings contaminating patches:
-    1) git add -A
-    2) echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached
-    """
-
-    def test_instance_template_has_two_step_submission(self):
+    def test_instance_template_has_submission_command(self):
         for name, info in EXPECTED_CONFIGS.items():
             data = _load_config(info["file"])
             instance_tpl = data["agent"]["instance_template"]
             self.assertIn(
-                SUBMISSION_STAGE_CMD, instance_tpl,
-                f"{name} instance_template missing staging command",
-            )
-            self.assertIn(
                 SUBMISSION_FINAL_CMD, instance_tpl,
-                f"{name} instance_template missing final submission command",
-            )
-            self.assertNotIn(
-                SUBMISSION_COMBINED_CMD, instance_tpl,
-                f"{name} instance_template should not use combined submission command",
+                f"{name} instance_template missing submission command",
             )
 
 

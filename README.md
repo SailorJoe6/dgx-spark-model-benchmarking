@@ -67,33 +67,14 @@ Located in `configs/`, based on live-swe-agent's `livesweagent_swebench.yaml`:
 - **Streaming mode** for vLLM to prevent HTTP timeouts on long generations
 - **Pipelined evaluation** - Run test harness in parallel with agent generation
 - **Memory-safe operation** - Optimized for DGX Spark's unified memory architecture (119GB)
-- **Two-step submission** - Clean patch capture without git warnings polluting output
-- **Step limit warnings** - Agent warned at 90% and 100% of step limit to encourage timely submission
 
-## mini-swe-agent Enhancements
+## mini-swe-agent Fork Enhancements
 
-Our [fork](https://github.com/SailorJoe6/mini-swe-agent) includes:
+Our [fork](https://github.com/SailorJoe6/mini-swe-agent) is stacked on `origin/main` and currently adds:
 
-### 1. Streaming Mode (`litellm_model.py`)
-Prevents HTTP read timeouts on long vLLM generations by streaming responses token-by-token.
-
-### 2. Step Limit Warnings (`agents/default.py`)
-Warns agents when approaching step limit:
-- **At 90%**: "Running low on steps, wrap up soon"
-- **At final step**: "MUST submit NOW"
-
-### 3. Two-Step Submission Process (config change)
-Prevents garbage patches by separating `git add` from submission:
-
-```bash
-# Step 1: Stage changes (review warnings)
-git add -A
-
-# Step 2: Submit clean patch
-echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached
-```
-
-This fixes an issue where git warnings (submodules, large files) were corrupting patch output.
+- **LiteLLM streaming support** with usage fallback and a streaming guard circuit breaker (env vars documented in the fork).
+- **Live trajectory streaming** for SWE-bench runs, plus JSON-safe serialization for live JSONL and final trajectories.
+- **SWE-bench-Live docker_image support** in the swebench runner (uses dataset `docker_image` field).
 
 ## Usage
 

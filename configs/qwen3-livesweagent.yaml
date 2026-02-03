@@ -81,36 +81,41 @@ agent:
     - You can also create new tools or scripts to help you with the task
     - If a tool isn't available, you can also install it
 
-    ## Submission (Two-Step Process)
+    ## Submission
 
-    When you've completed your work, you MUST submit using this two-step process:
+    When you've completed your work, you MUST submit your changes as a git patch.
+    Follow these steps IN ORDER, with SEPARATE commands:
 
-    **Step 1: Stage your changes (separate command)**
-    `git add -A`
+    <IMPORTANT>
+    The patch must only contain changes to the specific source files you modified to fix the issue.
+    Do not submit file creations or changes to any of the following files:
 
-    Review the output carefully for any warnings or errors:
-    - Submodule warnings: You may need to exclude submodules with `git reset HEAD <submodule>`
-    - Large file warnings: Consider if these files should be included
-    - Other errors: Fix them before proceeding
+    - test and reproduction files
+    - helper scripts, tests, or tools that you created
+    - installation, build, packaging, configuration, or setup scripts unless they are directly part of the issue you were fixing (you can assume that the environment is already set up for your client)
+    - binary or compiled files
+    </IMPORTANT>
 
-    If there are issues, fix them and run `git add -A` again until the output is clean.
-    You can preview your patch with `git diff --cached` before submitting.
+    Step 1: Submit (EXACT command required)
+    You MUST use this EXACT command to submit:
 
-    **Step 2: Submit your patch (separate command, AFTER step 1)**
-    `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached`
+    ```bash
+    echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached
+    ```
 
-    **CRITICAL RULES:**
-    - Do NOT include `git add` in your submission command - files must already be staged from Step 1
-    - The submission command must ONLY be `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached`
-    - Any warnings or extra output in the submission will corrupt your patch
-    - You cannot continue working after submitting
+    If the command fails (nonzero exit status), it will not submit.
+
+    <CRITICAL>
+    - Submitting MUST be a separate command (not combined with other actions).
+    - You CANNOT continue working (reading, editing, testing) in any way on this task after submitting.
+    </CRITICAL>
     </instructions>
   step_limit: 250
   cost_limit: 3.
 
 environment:
   cwd: "/testbed"
-  timeout: 60
+  timeout: 1800
   env:
     PAGER: cat
     MANPAGER: cat

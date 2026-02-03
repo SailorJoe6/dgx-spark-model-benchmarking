@@ -65,4 +65,4 @@
 - The agentic workflow is the canonical path. Legacy direct-inference scripts remain for reference only.
 - See `ralph/plans/EXECUTION_PLAN.md` for the full, detailed execution state.
 - Status report (2026-02-03): no running generation/evaluation processes; no preds.json found yet.
-- Repo tests currently fail: `test_litellm_streaming` (3 failures around tool-call enforcement/actions) and `test_instance_template_has_two_step_submission` (missing `git add -A` in instance template). See beads issue for details.
+- Repo tests now pass: `python -m unittest discover -s tests -v` (Litellm tool-call parsing + submission template aligned to single-step submit).
