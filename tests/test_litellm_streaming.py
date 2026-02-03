@@ -1,15 +1,14 @@
-"""Tests for mini-swe-agent litellm_model streaming functionality.
+"""Tests for mini-swe-agent litellm_model tool-calling behavior.
 
-These tests verify that the streaming mode fix works correctly to avoid
-HTTP read timeouts on long vLLM generations.
-
-Requires: vLLM running at http://localhost:8000/v1
+These are unit tests that stub litellm.completion to avoid requiring a live
+vLLM server.
 """
 
-import os
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 # Add mini-swe-agent to path
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -19,163 +18,90 @@ if MINI_SWE_AGENT_SRC.exists():
 else:
     raise unittest.SkipTest(f"mini-swe-agent not found at {MINI_SWE_AGENT_SRC}")
 
-from minisweagent.models.litellm_model import LitellmModel, LitellmModelConfig
+from minisweagent.exceptions import FormatError
+from minisweagent.models.litellm_model import LitellmModel
+from minisweagent.models.utils.actions_toolcall import BASH_TOOL
 
 
-# Skip tests if vLLM is not running
-def vllm_available():
-    """Check if vLLM is running at localhost:8000."""
-    try:
-        import requests
-        response = requests.get("http://localhost:8000/v1/models", timeout=5)
-        return response.status_code == 200
-    except Exception:
-        return False
+class FakeFunction:
+    def __init__(self, name: str, arguments: str):
+        self.name = name
+        self.arguments = arguments
 
 
-@unittest.skipUnless(vllm_available(), "vLLM not running at localhost:8000")
-class TestLitellmStreaming(unittest.TestCase):
-    """Test streaming mode for litellm model."""
+class FakeToolCall:
+    def __init__(self, name: str, arguments: str, call_id: str = "call_1"):
+        self.function = FakeFunction(name, arguments)
+        self.id = call_id
 
-    def setUp(self):
-        """Set up test model with vLLM."""
-        self.model_name = "hosted_vllm/Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
-        self.api_base = "http://localhost:8000/v1"
 
-    def test_streaming_produces_content(self):
-        """Streaming mode should produce non-empty content."""
-        model = LitellmModel(
-            model_name=self.model_name,
-            model_kwargs={"api_base": self.api_base, "max_tokens": 50},
+class FakeMessage:
+    def __init__(self, content: str, tool_calls):
+        self.content = content
+        self.tool_calls = tool_calls
+
+    def model_dump(self):
+        return {"role": "assistant", "content": self.content, "tool_calls": self.tool_calls}
+
+
+class FakeResponse:
+    def __init__(self, message: FakeMessage):
+        self.choices = [SimpleNamespace(message=message)]
+
+    def model_dump(self):
+        return {"choices": [{"message": self.choices[0].message.model_dump()}], "model": "fake-model"}
+
+
+class TestLitellmToolCalling(unittest.TestCase):
+    def _model(self):
+        return LitellmModel(
+            model_name="test-model",
+            model_kwargs={"api_base": "http://localhost:8000/v1"},
             cost_tracking="ignore_errors",
-            use_streaming=True,
         )
 
-        result = model.query([{"role": "user", "content": "Say hello in exactly 5 words."}])
+    @patch("minisweagent.models.litellm_model.litellm.cost_calculator.completion_cost", return_value=0.01)
+    @patch("minisweagent.models.litellm_model.litellm.completion")
+    def test_query_returns_actions_and_extra(self, mock_completion, _mock_cost):
+        tool_calls = [FakeToolCall("bash", '{"command": "echo hi"}', "call_123")]
+        response = FakeResponse(FakeMessage("ok", tool_calls))
+        mock_completion.return_value = response
 
-        self.assertIn("content", result)
-        self.assertIsInstance(result["content"], str)
-        self.assertGreater(len(result["content"]), 0)
-        print(f"Streaming content: {result['content']!r}")
+        model = self._model()
+        result = model.query([
+            {"role": "user", "content": "run a command", "extra": {"ignored": True}},
+        ])
 
-    def test_streaming_response_has_extra(self):
-        """Streaming response should include extra metadata."""
-        model = LitellmModel(
-            model_name=self.model_name,
-            model_kwargs={"api_base": self.api_base, "max_tokens": 20},
-            cost_tracking="ignore_errors",
-            use_streaming=True,
-        )
-
-        result = model.query([{"role": "user", "content": "Hi"}])
-
+        self.assertEqual(result["content"], "ok")
         self.assertIn("extra", result)
-        self.assertIn("response", result["extra"])
-        # Response should have model_dump() result
-        response_data = result["extra"]["response"]
-        self.assertIn("choices", response_data)
-        self.assertIn("model", response_data)
-
-    def test_non_streaming_still_works(self):
-        """Non-streaming mode should still work when disabled."""
-        model = LitellmModel(
-            model_name=self.model_name,
-            model_kwargs={"api_base": self.api_base, "max_tokens": 20},
-            cost_tracking="ignore_errors",
-            use_streaming=False,
+        self.assertEqual(
+            result["extra"]["actions"],
+            [{"command": "echo hi", "tool_call_id": "call_123"}],
         )
+        self.assertEqual(result["extra"]["response"]["model"], "fake-model")
 
-        result = model.query([{"role": "user", "content": "Hi"}])
+        _, kwargs = mock_completion.call_args
+        self.assertEqual(kwargs["tools"], [BASH_TOOL])
+        self.assertNotIn("extra", kwargs["messages"][0])
 
-        self.assertIn("content", result)
-        self.assertIsInstance(result["content"], str)
-        self.assertGreater(len(result["content"]), 0)
-        print(f"Non-streaming content: {result['content']!r}")
+    @patch("minisweagent.models.litellm_model.litellm.completion")
+    def test_query_requires_tool_calls(self, mock_completion):
+        response = FakeResponse(FakeMessage("no tools", None))
+        mock_completion.return_value = response
 
-    def test_streaming_matches_non_streaming_format(self):
-        """Streaming and non-streaming should produce same result format."""
-        messages = [{"role": "user", "content": "What is 2+2? Answer with just the number."}]
+        model = self._model()
+        with self.assertRaises(FormatError):
+            model.query([{"role": "user", "content": "hi"}])
 
-        streaming_model = LitellmModel(
-            model_name=self.model_name,
-            model_kwargs={"api_base": self.api_base, "max_tokens": 10, "temperature": 0},
-            cost_tracking="ignore_errors",
-            use_streaming=True,
-        )
-        non_streaming_model = LitellmModel(
-            model_name=self.model_name,
-            model_kwargs={"api_base": self.api_base, "max_tokens": 10, "temperature": 0},
-            cost_tracking="ignore_errors",
-            use_streaming=False,
-        )
+    @patch("minisweagent.models.litellm_model.litellm.completion")
+    def test_query_rejects_unknown_tool(self, mock_completion):
+        tool_calls = [FakeToolCall("python", '{"command": "print(1)"}', "call_456")]
+        response = FakeResponse(FakeMessage("bad tool", tool_calls))
+        mock_completion.return_value = response
 
-        streaming_result = streaming_model.query(messages)
-        non_streaming_result = non_streaming_model.query(messages)
-
-        # Both should have same keys
-        self.assertEqual(set(streaming_result.keys()), set(non_streaming_result.keys()))
-
-        # Both should have content
-        self.assertIn("content", streaming_result)
-        self.assertIn("content", non_streaming_result)
-
-        # Content should be similar (may not be identical due to sampling)
-        print(f"Streaming: {streaming_result['content']!r}")
-        print(f"Non-streaming: {non_streaming_result['content']!r}")
-
-    def test_streaming_default_enabled(self):
-        """Streaming should be enabled by default."""
-        config = LitellmModelConfig(
-            model_name="test-model",
-            cost_tracking="ignore_errors",
-        )
-        self.assertTrue(config.use_streaming)
-
-    def test_streaming_env_var_disable(self):
-        """MSWEA_USE_STREAMING=false should disable streaming."""
-        original = os.environ.get("MSWEA_USE_STREAMING")
-        try:
-            os.environ["MSWEA_USE_STREAMING"] = "false"
-            # Need to reimport to pick up env var
-            from importlib import reload
-            import minisweagent.models.litellm_model as lm
-            reload(lm)
-            config = lm.LitellmModelConfig(
-                model_name="test-model",
-                cost_tracking="ignore_errors",
-            )
-            self.assertFalse(config.use_streaming)
-        finally:
-            # Restore original
-            if original is None:
-                os.environ.pop("MSWEA_USE_STREAMING", None)
-            else:
-                os.environ["MSWEA_USE_STREAMING"] = original
-            # Reload to restore default
-            reload(lm)
-
-
-class TestStreamingResponseReconstruction(unittest.TestCase):
-    """Test the response reconstruction logic without requiring vLLM."""
-
-    def test_reconstruct_handles_empty_stream(self):
-        """Should handle edge case of empty stream."""
-        from litellm.types.utils import Choices, Message, ModelResponse, Usage
-
-        model = LitellmModel(
-            model_name="test-model",
-            cost_tracking="ignore_errors",
-            use_streaming=True,
-        )
-
-        # Simulate empty stream
-        empty_stream = iter([])
-
-        # This should not crash, but return empty content
-        # We need to handle the case where last_chunk is None
-        result = model._reconstruct_response_from_stream(empty_stream)
-
-        self.assertEqual(result.choices[0].message.content, "")
+        model = self._model()
+        with self.assertRaises(FormatError):
+            model.query([{"role": "user", "content": "hi"}])
 
 
 if __name__ == "__main__":

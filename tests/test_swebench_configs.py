@@ -2,7 +2,7 @@
 
 Validates that all 4 model configs (qwen3, deepseek, mixtral, gptoss) are
 well-formed YAML with correct structure, required fields, and critical bug
-fixes applied (submission command, format_error_template, timeout_template).
+fixes applied (submission command, v2 tool-calling templates).
 """
 
 import os
@@ -12,6 +12,7 @@ import unittest
 import yaml
 
 CONFIGS_DIR = str(Path(__file__).resolve().parents[1] / "configs")
+TEMPLATE_PATH = str(Path(CONFIGS_DIR) / "livesweagent.template.yaml")
 
 EXPECTED_CONFIGS = {
     "qwen3": {
@@ -32,8 +33,12 @@ EXPECTED_CONFIGS = {
     },
 }
 
-# The submission command that must appear in configs (bug fix for empty patches)
-SUBMISSION_COMMAND = "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git add -A && git diff --cached"
+# Submission commands expected for the two-step process.
+SUBMISSION_STAGE_CMD = "git add -A"
+SUBMISSION_FINAL_CMD = "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached"
+SUBMISSION_COMBINED_CMD = (
+    "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git add -A && git diff --cached"
+)
 
 
 def _load_config(filename):
@@ -41,6 +46,13 @@ def _load_config(filename):
     path = os.path.join(CONFIGS_DIR, filename)
     with open(path) as f:
         return yaml.safe_load(f)
+
+def _load_template_text():
+    with open(TEMPLATE_PATH) as f:
+        return f.read()
+
+def _render_template(template_text, model_name):
+    return template_text.replace("{{MODEL_NAME}}", model_name)
 
 
 class TestConfigFilesExist(unittest.TestCase):
@@ -53,6 +65,10 @@ class TestConfigFilesExist(unittest.TestCase):
                 os.path.exists(path),
                 f"Config file missing for {name}: {path}",
             )
+        self.assertTrue(
+            os.path.exists(TEMPLATE_PATH),
+            f"Template file missing: {TEMPLATE_PATH}",
+        )
 
 
 class TestConfigYAMLValidity(unittest.TestCase):
@@ -87,9 +103,6 @@ class TestConfigStructure(unittest.TestCase):
         required_templates = [
             "system_template",
             "instance_template",
-            "action_observation_template",
-            "format_error_template",
-            "timeout_template",
         ]
         for name, data in self.configs.items():
             agent = data["agent"]
@@ -101,12 +114,26 @@ class TestConfigStructure(unittest.TestCase):
                     agent[tpl], str, f"{name} agent.{tpl} is not a string"
                 )
 
+    def test_model_templates(self):
+        required_templates = [
+            "observation_template",
+            "format_error_template",
+        ]
+        for name, data in self.configs.items():
+            model = data["model"]
+            for tpl in required_templates:
+                self.assertIn(
+                    tpl, model, f"{name} missing model.{tpl}"
+                )
+                self.assertIsInstance(
+                    model[tpl], str, f"{name} model.{tpl} is not a string"
+                )
+
     def test_agent_limits(self):
         for name, data in self.configs.items():
             agent = data["agent"]
             self.assertIn("step_limit", agent, f"{name} missing step_limit")
             self.assertIn("cost_limit", agent, f"{name} missing cost_limit")
-            self.assertIn("mode", agent, f"{name} missing mode")
 
     def test_environment_fields(self):
         for name, data in self.configs.items():
@@ -126,6 +153,10 @@ class TestConfigStructure(unittest.TestCase):
         for name, data in self.configs.items():
             model = data["model"]
             self.assertIn("model_name", model, f"{name} missing model.model_name")
+            self.assertEqual(
+                model.get("model_class"), "litellm",
+                f"{name} model.model_class must be 'litellm'",
+            )
             self.assertEqual(
                 model.get("cost_tracking"), "ignore_errors",
                 f"{name} model.cost_tracking must be 'ignore_errors'",
@@ -159,61 +190,44 @@ class TestConfigModelNames(unittest.TestCase):
 
 
 class TestSubmissionCommandFix(unittest.TestCase):
-    """All configs must include the submission command bug fix.
+    """All configs must include the two-step submission process.
 
-    The original livesweagent.yaml instructed agents to run just
-    'echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT' which produces empty patches.
-    The fix appends '&& git add -A && git diff --cached' to capture the patch.
+    The submission is now split to avoid git warnings contaminating patches:
+    1) git add -A
+    2) echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached
     """
 
-    def test_instance_template_has_submission_fix(self):
+    def test_instance_template_has_two_step_submission(self):
         for name, info in EXPECTED_CONFIGS.items():
             data = _load_config(info["file"])
             instance_tpl = data["agent"]["instance_template"]
             self.assertIn(
-                SUBMISSION_COMMAND, instance_tpl,
-                f"{name} instance_template missing submission command fix",
+                SUBMISSION_STAGE_CMD, instance_tpl,
+                f"{name} instance_template missing staging command",
             )
-
-    def test_format_error_template_has_submission_fix(self):
-        for name, info in EXPECTED_CONFIGS.items():
-            data = _load_config(info["file"])
-            fmt_err = data["agent"]["format_error_template"]
             self.assertIn(
-                SUBMISSION_COMMAND, fmt_err,
-                f"{name} format_error_template missing submission command fix",
+                SUBMISSION_FINAL_CMD, instance_tpl,
+                f"{name} instance_template missing final submission command",
+            )
+            self.assertNotIn(
+                SUBMISSION_COMBINED_CMD, instance_tpl,
+                f"{name} instance_template should not use combined submission command",
             )
 
 
 class TestConfigConsistency(unittest.TestCase):
-    """All configs must be structurally identical except for model_name."""
+    """All configs must match the template (with model_name substituted)."""
 
     def setUp(self):
-        self.configs = {
-            name: _load_config(info["file"])
-            for name, info in EXPECTED_CONFIGS.items()
-        }
+        self.template_text = _load_template_text()
 
-    def _strip_model_name(self, data):
-        """Return config with model_name and comment line neutralized."""
-        import copy
-        d = copy.deepcopy(data)
-        d["model"]["model_name"] = "PLACEHOLDER"
-        return d
-
-    def test_all_configs_identical_except_model_name(self):
-        stripped = {
-            name: self._strip_model_name(data)
-            for name, data in self.configs.items()
-        }
-        names = list(stripped.keys())
-        reference_name = names[0]
-        reference = stripped[reference_name]
-        for name in names[1:]:
+    def test_configs_match_template(self):
+        for name, info in EXPECTED_CONFIGS.items():
+            rendered = _render_template(self.template_text, info["model_name"])
+            actual = Path(CONFIGS_DIR, info["file"]).read_text()
             self.assertEqual(
-                reference, stripped[name],
-                f"{name} config differs from {reference_name} "
-                f"(beyond model_name). Configs must be structurally identical.",
+                rendered, actual,
+                f"{name} config differs from template output.",
             )
 
 
