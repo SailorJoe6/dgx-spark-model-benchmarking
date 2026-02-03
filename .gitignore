@@ -7,3 +7,5 @@ logs/**
 !logs/memory-investigation.md
 scripts/__pycache__/
 tests/__pycache__/
+
+work/swebench/logs/

@@ -53,7 +53,28 @@ fi
 
 echo "Tailing: ${TAIL_FILE}"
 if command -v jq >/dev/null 2>&1; then
-  tail -f "${TAIL_FILE}" | jq -C --unbuffered .
+  tail -f "${TAIL_FILE}" | jq -C --unbuffered '
+    if .role == "tool" then
+      {
+        ts: (.extra.timestamp // null),
+        role: .role,
+        output: (.content | tostring)
+      }
+    else
+      {
+        ts: (.extra.timestamp // .extra.response.timestamp // null),
+        role: .role,
+        content: .content,
+        tool_calls: (
+          .tool_calls // [] | map(
+            .function.arguments
+            | (try fromjson catch .)
+            | .command // .
+          )
+        )
+      }
+    end
+  '
 else
   tail -f "${TAIL_FILE}"
 fi

@@ -14,6 +14,7 @@ Environment:
   WORKDIR       Path to work/swebench (default: <repo>/work/swebench)
   WORKERS       mini-extra worker count (default: 1)
   STREAM_USAGE  1 to request streaming usage stats (default: 1)
+  DOCKER_DEFAULT_PLATFORM  Must be linux/amd64 (required for SWE-bench containers)
 USAGE
 }
 
@@ -60,6 +61,35 @@ if [[ ! -f "${WORKDIR}/.venv/bin/activate" ]]; then
   echo "ERROR: missing venv at ${WORKDIR}/.venv" >&2
   exit 1
 fi
+
+require_amd64_emulation() {
+  local platform="${DOCKER_DEFAULT_PLATFORM:-}"
+  if [[ "${platform}" != "linux/amd64" ]]; then
+    echo "ERROR: DOCKER_DEFAULT_PLATFORM must be linux/amd64 (current: '${platform:-unset}')." >&2
+    echo "Run in this shell:" >&2
+    echo "  docker run --privileged --rm tonistiigi/binfmt --install amd64" >&2
+    echo "  export DOCKER_DEFAULT_PLATFORM=linux/amd64" >&2
+    exit 1
+  fi
+
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "ERROR: docker not found in PATH; cannot verify amd64 emulation." >&2
+    exit 1
+  fi
+
+  local arch
+  if ! arch="$(docker run --rm --platform=linux/amd64 alpine:3.19 uname -m 2>/dev/null)"; then
+    echo "ERROR: amd64 emulation check failed. Re-run binfmt install and try again." >&2
+    exit 1
+  fi
+
+  if [[ "${arch}" != "x86_64" ]]; then
+    echo "ERROR: amd64 emulation check returned '${arch}', expected 'x86_64'." >&2
+    exit 1
+  fi
+}
+
+require_amd64_emulation
 
 mkdir -p "${OUTPUT_DIR}"
 

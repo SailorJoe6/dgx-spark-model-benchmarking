@@ -1,7 +1,7 @@
 # Current Status - SWE-bench Multilingual Agentic Evaluation
 
 **Last Updated:** 2026-02-03
-**Status:** BLOCKED (format-error loop investigation)
+**Status:** BLOCKED (config stabilization for Qwen3 runs)
 
 ---
 
@@ -17,11 +17,10 @@
 - ✅ Phase 1 alignment tasks (legacy script audit, timeout policy decision, blocked workflow doc, memory monitor runbook)
 
 **In Progress:**
-- Investigation: tool calls run real commands initially, then devolve into blank/no-op outputs
-  - Issue `swebench-eval-2o4` in progress (blocks Qwen3 evals)
-  - Qwen3 run stopped to test default mini-swe-agent prompt
-  - Default prompt test hit live-trajectory serialization errors: `SimpleNamespace` not JSON serializable
-  - Fixes applied in mini-swe-agent for JSON-safe trajectories + FormatError raw output capture
+- Config stabilization for Qwen3: tool-calling works, but stop sequences cause malformed tool-call JSON (FormatError loop).
+  - Confirmed: `model_kwargs.stop` triggers tool-call args like `{"command": "ls -la""{\"command\": \"ls -la\"}"}`.
+  - Mitigation: keep stop sequences commented out (see `swebench-eval-4hh`).
+  - Template updated to match working Qwen3 config (swebench.yaml structure + local vLLM settings).
 
 **Not Started / Pending:**
 - ⏳ Phase 4: All model evaluations paused pending `swebench-eval-2o4` resolution
@@ -34,6 +33,7 @@
 - Started v2 migration alignment: configs now use native tool calling (`model_class: litellm`) with bash tool prompts.
 - Set per-command timeout to 30m (`environment.timeout: 1800`) per spec.
 - Pipeline updated to read/write outputs under `work/swebench/logs/...` (no repo-root logs).
+- Wrapper scripts now enforce amd64 emulation preflight (requires `DOCKER_DEFAULT_PLATFORM=linux/amd64`).
 - Memory investigation summary retained: `--max-model-len 262144` stable, `--gpu-memory-utilization 0.80` preferred.
 - mini-swe-agent stacked branch rebase completed; streaming JSONL serialization fix applied and tests pass (submodule now at `029f772`).
 
@@ -52,8 +52,8 @@
 
 ## 📌 Next Steps (Ordered)
 
-1. Resolve `swebench-eval-2o4`: re-run default-config test to confirm tool-call formatting; retry Qwen3 run.
-2. Start Qwen3 agentic evals (issue `swebench-eval-6ij`).
+1. Resume Qwen3 agentic evals with stop sequences disabled (issue `swebench-eval-6ij`).
+2. Keep `swebench-eval-4hh` open until stop-sequence bug is fixed upstream/in fork.
 3. Proceed with DeepSeek → Mixtral → GPT-OSS evaluations (issues `swebench-eval-5xy`, `swebench-eval-4vy`, `swebench-eval-u6j`).
 4. Run final metrics aggregation + draft report (issue `swebench-eval-5yc`).
 5. Complete cleanup tasks and archive plan/spec if finished.
@@ -65,3 +65,4 @@
 - The agentic workflow is the canonical path. Legacy direct-inference scripts remain for reference only.
 - See `ralph/plans/EXECUTION_PLAN.md` for the full, detailed execution state.
 - Status report (2026-02-03): no running generation/evaluation processes; no preds.json found yet.
+- Repo tests currently fail: `test_litellm_streaming` (3 failures around tool-call enforcement/actions) and `test_instance_template_has_two_step_submission` (missing `git add -A` in instance template). See beads issue for details.

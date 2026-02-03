@@ -1,10 +1,8 @@
-# Qwen3-Coder-30B config based on livesweagent_swebench.yaml
-# Updated 2026-01-29 to use the SWE-bench tuned config (step_limit, boundaries, examples)
+# Config template based on mini-swe-agent swebench.yaml with local vLLM settings
 
 agent:
   system_template: |
     You are a helpful assistant that can interact with a computer shell to solve programming tasks.
-    Use the bash tool to run commands.
   instance_template: |
     <pr_description>
     Consider the following PR description:
@@ -15,27 +13,29 @@ agent:
     # Task Instructions
 
     ## Overview
+
     You're a software engineer interacting continuously with a computer by submitting commands.
     You'll be helping implement necessary changes to meet requirements in the PR description.
     Your task is specifically to make changes to non-test files in the current directory in order to fix the issue described in the PR description in a way that is general and consistent with the codebase.
-
-    IMPORTANT: This is an interactive process where you will think and issue ONE command, see its result, then think and issue your next command.
+    <IMPORTANT>This is an interactive process where you will think and issue AT LEAST ONE command, see the result, then think and issue your next command(s).</important>
 
     For each response:
+
     1. Include a THOUGHT section explaining your reasoning and what you're trying to accomplish
-    2. Provide exactly ONE bash tool call to execute a command
+    2. Provide exactly ONE bash command to execute
 
     ## Important Boundaries
+
     - MODIFY: Regular source code files in /testbed (this is the working directory for all your subsequent commands)
     - DO NOT MODIFY: Tests, configuration files (pyproject.toml, setup.cfg, etc.)
 
-    ## Required Workflow
+    ## Recommended Workflow
+
     1. Analyze the codebase by finding and reading relevant files
-    2. Create a script to reproduce the issue
+    2. Run the FAIL_TO_PASS tests (or the smallest relevant test subset) and record which tests fail
     3. Edit the source code to resolve the issue
-    4. Run the FAIL_TO_PASS tests (or the smallest relevant test subset) and record which tests fail
-    5. Verify your fix works by re-running the FAIL_TO_PASS tests
-    6. Test edge cases to ensure your fix is robust (if feasible)
+    4. Verify your fix works by re-running the FAIL_TO_PASS tests
+    5. Test edge cases to ensure your fix is robust
 
     ## Test Requirements (MANDATORY)
     - You MUST run the FAIL_TO_PASS tests or the smallest relevant test subset for the issue.
@@ -43,53 +43,43 @@ agent:
     - You must consider test results in the context of the PR description before submitting.
     - Keep working until test results clearly indicate the PR is fixed.
 
-    ## CRITICAL Unblocking Behavior (MANDATORY)
-    - You are BLOCKED if you cannot modify required files, cannot run required tests, or cannot get the FAIL_TO_PASS tests to pass after reasonable attempts.
-    - If BLOCKED, you MUST try to unblock yourself by adjusting commands, installing missing tools/dependencies, or generating helper scripts.
-    - If still BLOCKED after tool installation or script generation, clearly explain the specific blocker and why it cannot be resolved in this environment, then submit an empty patch.
 
     ## Command Execution Rules
+
     You are operating in an environment where
-    1. You write a single command
-    2. The system executes that command in a subshell
-    3. You see the result
-    4. You write your next command
+
+    1. You issue at least one command
+    3. The system executes the command(s) in a subshell
+    4. You see the result(s)
+    5. You write your next command(s)
 
     Each response should include:
-    1. A THOUGHT section where you explain your reasoning and plan
-    2. A single bash tool call with your command
+
+    1. **Reasoning text** where you explain your analysis and plan
+    2. At least one tool call with your command
 
     **CRITICAL REQUIREMENTS:**
-    - Your response SHOULD include a THOUGHT section explaining your reasoning
-    - Your response MUST include EXACTLY ONE bash tool call with a single command
-    - If you include zero or multiple tool calls, your response will fail
-    - Do NOT try to run multiple independent commands in separate tool calls in one response
+
+    - Your response SHOULD include reasoning text explaining what you're doing
+    - Your response MUST include AT LEAST ONE bash tool call
     - Directory or environment variable changes are not persistent. Every action is executed in a new subshell.
     - However, you can prefix any action with `MY_ENV_VAR=MY_VALUE cd /path/to/working/dir && ...` or write/load environment variables from files
 
     Example of a CORRECT response:
     <example_response>
-    THOUGHT: I need to understand the structure of the repository first. Let me check what files are in the current directory to get a better understanding of the codebase.
+    I need to understand the structure of the repository first. Let me check what files are in the current directory to get a better understanding of the codebase.
 
     [Makes bash tool call with {"command": "ls -la"} as arguments]
     </example_response>
 
     ## Environment Details
+
     - You have a full Linux shell environment
     - Always use non-interactive flags (-y, -f) for commands
     - Avoid interactive tools like vi, nano, or any that require user input
-    - If a command isn't available, you can install it
-
-    ## Useful Command Examples
-
-    ### Create a new file:
-    `cat <<'EOF' > newfile.py` ... `EOF`
-
-    ### View file content:
-    `nl -ba filename.py | sed -n '10,20p'`
-
-    ### Edit files with sed:
-    `sed -i 's/old_string/new_string/g' filename.py`
+    - You can use bash commands or invoke any tool that is available in the environment
+    - You can also create new tools or scripts to help you with the task
+    - If a tool isn't available, you can also install it
 
     ## Submission (Two-Step Process)
 
@@ -114,20 +104,13 @@ agent:
     - The submission command must ONLY be `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached`
     - Any warnings or extra output in the submission will corrupt your patch
     - You cannot continue working after submitting
-
-    ## CRITICAL CONSTRAINTS (MANDATORY)
-    - You MUST work inside /testbed only. Never write files in /tmp or outside /testbed.
-    - Do NOT create placeholder or documentation-only files. Do actual code edits in the repository.
-    - If you cannot find relevant files, you MUST search the repo (e.g., use find/rg) before any write.
-    - Any command that only echoes a summary or writes to /tmp is invalid.
-
     </instructions>
-  step_limit: 500
-  cost_limit: 3.0
+  step_limit: 250
+  cost_limit: 3.
 
 environment:
   cwd: "/testbed"
-  timeout: 1800
+  timeout: 60
   env:
     PAGER: cat
     MANPAGER: cat
@@ -145,28 +128,21 @@ model:
   cost_tracking: "ignore_errors"
   use_streaming: true
   observation_template: |
-    <returncode>{{output.returncode}}</returncode>
-    {% if output.output | length < 10000 -%}
-    <output>
-    {{ output.output -}}
-    </output>
+    {%- if output.output | length < 10000 -%}
+    {
+      "returncode": {{ output.returncode }},
+      "output": {{ output.output | tojson }}
+      {%- if output.exception_info %}, "exception_info": {{ output.exception_info | tojson }}{% endif %}
+    }
     {%- else -%}
-    <warning>
-    The output of your last command was too long.
-    Please try a different command that produces less output.
-    If you're looking at a file you can try use head, tail, sed to view a smaller number of lines selectively.
-    If you're using grep or find and it produced too much output, you can use a more selective search pattern.
-    </warning>
-    {%- set elided_chars = output.output | length - 10000 -%}
-    <output_head>
-    {{ output.output[:5000] }}
-    </output_head>
-    <elided_chars>
-    {{ elided_chars }} characters elided
-    </elided_chars>
-    <output_tail>
-    {{ output.output[-5000:] }}
-    </output_tail>
+    {
+      "returncode": {{ output.returncode }},
+      "output_head": {{ output.output[:5000] | tojson }},
+      "output_tail": {{ output.output[-5000:] | tojson }},
+      "elided_chars": {{ output.output | length - 10000 }},
+      "warning": "Output too long."
+      {%- if output.exception_info %}, "exception_info": {{ output.exception_info | tojson }}{% endif %}
+    }
     {%- endif -%}
   format_error_template: |
     Tool call error. Every response needs to use the 'bash' tool at least once to execute commands.
@@ -179,12 +155,11 @@ model:
     submit your solution (you will not be able to continue working on this task after that).
   model_kwargs:
     max_completion_tokens: 65536
-    tool_choice: "required"
-    stop:
-      - "</files>"
-      - "</output>"
-      - "</instructions>"
-      - "</instructions>/n"
-    temperature: 0.0
+    # stop:
+    #   - "</files>"
+    #   - "</output>"
+    #   - "</instructions>"
+    #   - "</instructions>/n"
     drop_params: true
+    temperature: 0.0
     api_base: "http://localhost:8000/v1"
