@@ -55,9 +55,9 @@ agent:
     - Keep working until test results clearly indicate the PR is fixed.
 
     ## CRITICAL Unblocking Behavior (MANDATORY)
-    - If you become blocked, attempt to unblock yourself using available tools (adjust commands, install missing tools, etc.).
-    - If still blocked, consider installing or generating a tool to unblock yourself.
-    - If you cannot unblock yourself even by installing or generating any tools, clearly explain why, then submit an empty patch.
+    - You are BLOCKED if you cannot modify required files, cannot run required tests, or cannot get the FAIL_TO_PASS tests to pass after reasonable attempts.
+    - If BLOCKED, you MUST try to unblock yourself by adjusting commands, installing missing tools/dependencies, or generating helper scripts.
+    - If still BLOCKED after tool installation or script generation, clearly explain the specific blocker and why it cannot be resolved in this environment, then submit an empty patch.
 
     ## Command Execution Rules
     You are operating in an environment where
@@ -198,7 +198,29 @@ agent:
     - Do NOT output XML/HTML-style tags (e.g., </files>, </output>, <files>).
     
     </instructions>
-  action_observation_template: |
+  step_limit: 500
+  cost_limit: 3.0
+
+environment:
+  cwd: "/testbed"
+  timeout: 21600
+  env:
+    PAGER: cat
+    MANPAGER: cat
+    LESS: -R
+    PIP_PROGRESS_BAR: 'off'
+    TQDM_DISABLE: '1'
+  environment_class: docker
+  run_args:
+    - "--rm"
+    - "--platform=linux/amd64"
+
+model:
+  model_name: "hosted_vllm/Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
+  model_class: "litellm"
+  cost_tracking: "ignore_errors"
+  use_streaming: true
+  observation_template: |
     <returncode>{{output.returncode}}</returncode>
     {% if output.output | length < 10000 -%}
     <output>
@@ -222,23 +244,6 @@ agent:
     {{ output.output[-5000:] }}
     </output_tail>
     {%- endif -%}
-  timeout_template: |
-    The last command <command>{{action['action']}}</command> timed out and has been killed.
-    {% if output | length < 10000 -%}
-    <output>
-    {{output}}
-    </output>
-    {%- else -%}
-    <warning>Output was too long and has been truncated.</warning>
-    <output_head>
-    {{ output[:5000] }}
-    </output_head>
-    <elided_chars>{{ output | length - 10000 }} characters elided</elided_chars>
-    <output_tail>
-    {{ output[-5000:] }}
-    </output_tail>
-    {%- endif %}
-    Please try another command and make sure to avoid those requiring interactive input.
   format_error_template: |
     Please always provide EXACTLY ONE action in triple backticks, found {{actions|length}} actions.
 
@@ -254,33 +259,13 @@ agent:
 
     If you have completed your assignment, please consult the first message about how to
     submit your solution (you will not be able to continue working on this task after that).
-  action_regex: '```bash\s*\n(.*?)\n```'
-  step_limit: 500
-  cost_limit: 3.0
-
-environment:
-  cwd: "/testbed"
-  timeout: 21600
-  env:
-    PAGER: cat
-    MANPAGER: cat
-    LESS: -R
-    PIP_PROGRESS_BAR: 'off'
-    TQDM_DISABLE: '1'
-  environment_class: docker
-  run_args:
-    - "--rm"
-    - "--platform=linux/amd64"
-
-model:
-  model_name: "hosted_vllm/Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
-  cost_tracking: "ignore_errors"
-  use_streaming: true
   model_kwargs:
     max_completion_tokens: 65536
     stop:
       - "</files>"
       - "</output>"
+      - "</instructions>"
+      - "</instructions>/n"
     temperature: 0.0
     drop_params: true
     api_base: "http://localhost:8000/v1"

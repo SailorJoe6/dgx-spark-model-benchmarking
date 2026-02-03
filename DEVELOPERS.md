@@ -79,6 +79,33 @@ Notes:
 - `tests/test_litellm_streaming.py` requires vLLM running at `http://localhost:8000/v1` and the `mini-swe-agent` submodule present.
 - `tests/test_swebench_configs.py` validates the config files under `configs/`.
 
+### mini-swe-agent v2 System Requirements
+
+The mini-swe-agent v2 test suite relies on bubblewrap and requires system
+support for unprivileged user namespaces. On this host the following
+system changes were required to get `python -m pytest -q` passing in
+`work/swebench/mini-swe-agent`:
+
+- Install `uidmap` (provides `newuidmap`/`newgidmap` for bubblewrap).
+- Enable unprivileged user namespaces (AppArmor setting on Ubuntu 24.04).
+- Ensure `/lib64` exists (created symlink to `/lib` on Ubuntu 24.04).
+
+## Git Hooks (Test Enforcement)
+
+This repo uses a **repo-managed** git hook to enforce tests before commit.
+
+Install the hook once per clone:
+
+```bash
+scripts/git-hooks/install.sh
+```
+
+The `pre-commit` hook runs:
+- `python -m unittest discover -s tests -v` (repo tests)
+- `python -m pytest -q` in `work/swebench/mini-swe-agent`
+
+The hook is deterministic and uses the venv at `work/swebench/.venv`.
+
 ## Issue Tracking
 
 This project uses `bd` (beads) for issue tracking. See `AGENTS.md` for the workflow.

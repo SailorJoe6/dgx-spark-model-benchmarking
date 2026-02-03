@@ -2,7 +2,7 @@
 
 Validates that all 4 model configs (qwen3, deepseek, mixtral, gptoss) are
 well-formed YAML with correct structure, required fields, and critical bug
-fixes applied (submission command, format_error_template, timeout_template).
+fixes applied (submission command, v2 tool-calling templates).
 """
 
 import os
@@ -103,9 +103,6 @@ class TestConfigStructure(unittest.TestCase):
         required_templates = [
             "system_template",
             "instance_template",
-            "action_observation_template",
-            "format_error_template",
-            "timeout_template",
         ]
         for name, data in self.configs.items():
             agent = data["agent"]
@@ -115,6 +112,21 @@ class TestConfigStructure(unittest.TestCase):
                 )
                 self.assertIsInstance(
                     agent[tpl], str, f"{name} agent.{tpl} is not a string"
+                )
+
+    def test_model_templates(self):
+        required_templates = [
+            "observation_template",
+            "format_error_template",
+        ]
+        for name, data in self.configs.items():
+            model = data["model"]
+            for tpl in required_templates:
+                self.assertIn(
+                    tpl, model, f"{name} missing model.{tpl}"
+                )
+                self.assertIsInstance(
+                    model[tpl], str, f"{name} model.{tpl} is not a string"
                 )
 
     def test_agent_limits(self):
@@ -141,6 +153,10 @@ class TestConfigStructure(unittest.TestCase):
         for name, data in self.configs.items():
             model = data["model"]
             self.assertIn("model_name", model, f"{name} missing model.model_name")
+            self.assertEqual(
+                model.get("model_class"), "litellm",
+                f"{name} model.model_class must be 'litellm'",
+            )
             self.assertEqual(
                 model.get("cost_tracking"), "ignore_errors",
                 f"{name} model.cost_tracking must be 'ignore_errors'",

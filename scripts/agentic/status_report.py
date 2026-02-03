@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 LOGS = ROOT / "logs"
 WORK = ROOT / "work" / "swebench"
+LOGS_ALT = WORK / "logs"
 
 MODELS = ["qwen3", "deepseek", "mixtral", "gptoss"]
 LIVE_SPLITS = {
@@ -53,18 +54,39 @@ def _load_json(path: Path):
     return json.loads(path.read_text())
 
 
-def _count_preds(path: Path) -> int:
-    if not path.exists():
+def _select_preds_path(paths: list[Path]) -> Path | None:
+    for path in paths:
+        if path.exists():
+            return path
+    return None
+
+
+def _count_preds(paths: list[Path]) -> int:
+    selected = _select_preds_path(paths)
+    if selected is None:
         return 0
-    return len(_load_json(path))
+    return len(_load_json(selected))
+
+
+def _preds_paths(suite: str, model: str, split: str | None = None) -> list[Path]:
+    if suite == "multilingual":
+        return [
+            LOGS / "swebench-multilingual" / model / "preds.json",
+            LOGS_ALT / "swebench-multilingual" / model / "preds.json",
+        ]
+    if split is None:
+        raise ValueError("split is required for live-multilang suite")
+    return [
+        LOGS / "swebench-live-multilang" / model / split / "preds.json",
+        LOGS_ALT / "swebench-live-multilang" / model / split / "preds.json",
+    ]
 
 
 def _suite_status():
     ps_text = _ps_text()
     multilingual = {}
     for model in MODELS:
-        preds = LOGS / "swebench-multilingual" / model / "preds.json"
-        count = _count_preds(preds)
+        count = _count_preds(_preds_paths("multilingual", model))
         status = "done" if count >= 300 else ("running" if _running_generation(ps_text, model) else "waiting")
         multilingual[model] = (status, count, 300)
 
@@ -73,8 +95,7 @@ def _suite_status():
         split_counts = {}
         all_done = True
         for split, total in LIVE_SPLITS.items():
-            preds = LOGS / "swebench-live-multilang" / model / split / "preds.json"
-            count = _count_preds(preds)
+            count = _count_preds(_preds_paths("live-multilang", model, split))
             split_counts[split] = (count, total)
             if count < total:
                 all_done = False
@@ -129,11 +150,11 @@ def _eval_stats():
     return total, count, error_count, resolved, percent, model_dir
 
 
-def _load_preds() -> dict:
-    preds_path = LOGS / "swebench-multilingual" / "qwen3" / "preds.json"
-    if not preds_path.exists():
-        return {}
-    return _load_json(preds_path)
+def _load_preds(paths: list[Path]) -> tuple[dict, Path | None]:
+    preds_path = _select_preds_path(paths)
+    if preds_path is None:
+        return {}, None
+    return _load_json(preds_path), preds_path
 
 
 def _patch_text(entry: dict) -> str | None:
@@ -220,12 +241,17 @@ def main() -> int:
         print(f"- {model}: {status} ({parts})")
 
     # Generation
-    preds_path = LOGS / "swebench-multilingual" / "qwen3" / "preds.json"
-    preds_count = _count_preds(preds_path)
+    preds_candidates = _preds_paths("multilingual", "qwen3")
+    preds_path = _select_preds_path(preds_candidates)
+    preds_count = _count_preds(preds_candidates)
     preds_pct = (preds_count / 300 * 100.0) if preds_count else 0.0
     gen_line = _gen_process_line(ps_text)
     print("\nGeneration (Qwen3 multilingual)")
     print(f"- preds.json entries: {preds_count} / 300 ({preds_pct:.2f}%)")
+    if preds_path:
+        print(f"- preds path: {preds_path}")
+    else:
+        print("- preds path: missing (checked repo logs + work logs)")
     if gen_line:
         print(f"- process running: {gen_line}")
     else:
@@ -245,7 +271,7 @@ def main() -> int:
     else:
         print("- process running: not running")
 
-    preds = _load_preds()
+    preds, _ = _load_preds(preds_candidates)
     dataset_counts = _dataset_status(preds, model_dir)
     if preds:
         print("\nDataset status (Qwen3 multilingual)")

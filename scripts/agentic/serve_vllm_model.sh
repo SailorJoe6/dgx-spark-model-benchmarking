@@ -12,7 +12,7 @@ Model keys:
   gptoss     openai/gpt-oss-120b
 
 Environment overrides:
-  VLLM_IMAGE             (default: nvcr.io/nvidia/vllm:25.12.post1-py3)
+  VLLM_IMAGE             (default: nvcr.io/nvidia/vllm:26.01-py3)
   VLLM_PORT              (default: 8000)
   VLLM_MAX_MODEL_LEN     (default: 262144)
   VLLM_GPU_MEMORY_UTIL   (default: 0.80)
@@ -36,7 +36,7 @@ fi
 
 MODEL_KEY="$1"
 
-VLLM_IMAGE="${VLLM_IMAGE:-nvcr.io/nvidia/vllm:25.12.post1-py3}"
+VLLM_IMAGE="${VLLM_IMAGE:-nvcr.io/nvidia/vllm:26.01-py3}"
 VLLM_PORT="${VLLM_PORT:-8000}"
 VLLM_MAX_MODEL_LEN="${VLLM_MAX_MODEL_LEN:-262144}"
 VLLM_GPU_MEMORY_UTIL="${VLLM_GPU_MEMORY_UTIL:-0.80}"
@@ -54,6 +54,7 @@ case "${MODEL_KEY}" in
   qwen3)
     MODEL_NAME="Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
     CONTAINER_NAME="vllm-qwen3-coder"
+    MODEL_ARGS+=(--enable-auto-tool-choice --tool-call-parser qwen3_xml)
     ;;
   deepseek)
     MODEL_NAME="deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct"
