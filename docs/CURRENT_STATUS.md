@@ -1,7 +1,7 @@
 # Current Status - SWE-bench Multilingual Agentic Evaluation
 
-**Last Updated:** 2026-02-02
-**Status:** BLOCKED (Qwen3 run active)
+**Last Updated:** 2026-02-03
+**Status:** READY (no active runs)
 
 ---
 
@@ -17,40 +17,35 @@
 - ✅ Phase 1 alignment tasks (legacy script audit, timeout policy decision, blocked workflow doc, memory monitor runbook)
 
 **In Progress:**
-- 🔄 Qwen3 agentic evaluation running (started 2026-02-02T06:18:44+00:00).
+- None (no active agentic runs detected)
 
 **Not Started / Pending:**
-- ⏳ Phase 4: Remaining model evaluations (DeepSeek, Mixtral, GPT-OSS)
+- ⏳ Phase 4: All model evaluations (Qwen3 → DeepSeek → Mixtral → GPT-OSS)
 - ⏳ Phase 5-6: Evaluation reports + cleanup
 
 ---
 
 ## ✅ What Changed Recently
 
-- Updated livesweagent configs to `max_completion_tokens: 65536` and `use_streaming: true`, then regenerated model configs.
-- Set per-command timeout to 6h (`environment.timeout: 21600`) to avoid unintended command kills during long runs.
-- Documented blocked workflow + memory monitor requirements in the runbook.
-- Audited legacy scripts and documented their status.
-- Memory investigation summary updated: `--max-model-len 262144` stable, `--gpu-memory-utilization 0.80` preferred.
-- Qwen3 run restarted cleanly with new vLLM settings.
+- Started v2 migration alignment: configs now use native tool calling (`model_class: litellm`) with bash tool prompts.
+- Set per-command timeout to 30m (`environment.timeout: 1800`) per spec.
+- Pipeline updated to read/write outputs under `work/swebench/logs/...` (no repo-root logs).
+- Memory investigation summary retained: `--max-model-len 262144` stable, `--gpu-memory-utilization 0.80` preferred.
 
 ---
 
 ## ⚠️ Active Work
 
 **Primary beads issues:**
-- `swebench-eval-a44`: Qwen3 evaluation (in progress)
-- `swebench-eval-cxu`: DeepSeek evaluation (open)
-- `swebench-eval-tnt`: Mixtral evaluation (open)
-- `swebench-eval-g8d`: GPT-OSS evaluation (open)
-- `swebench-eval-6n1`: Final report (open)
+- None open (create new issues before starting evaluations)
 
 ---
 
 ## 📌 Next Steps (Ordered)
 
-1. Let Qwen3 multilingual run complete, then start live-multilang splits sequentially.
-2. Proceed with DeepSeek → Mixtral → GPT-OSS evaluations (same workflow).
+1. Create beads issues for per-model evaluations (Qwen3 → DeepSeek → Mixtral → GPT-OSS) and report.
+2. Run Qwen3 multilingual, then live-multilang splits sequentially.
+3. Proceed with DeepSeek → Mixtral → GPT-OSS evaluations (same workflow).
 4. Run final metrics aggregation + report.
 5. Complete cleanup tasks and archive plan/spec if finished.
 
@@ -60,6 +55,4 @@
 
 - The agentic workflow is the canonical path. Legacy direct-inference scripts remain for reference only.
 - See `ralph/plans/EXECUTION_PLAN.md` for the full, detailed execution state.
-- Qwen3 run: memory monitor started before launch; vLLM + agentic run active.
-- vLLM health reports `max_model_len: 262144` and `gpu-memory-utilization: 0.80`.
-- Qwen3 run started before output-path fix; its live outputs and `minisweagent.log` are under `work/swebench/logs/swebench-multilingual/qwen3/` (repo-root `logs/` only has `nohup.log` + metadata for this run).
+- Status report (2026-02-03): no running generation/evaluation processes; no preds.json found yet.

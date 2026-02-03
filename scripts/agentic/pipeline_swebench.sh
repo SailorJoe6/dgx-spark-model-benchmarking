@@ -54,7 +54,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 WORKDIR="${WORKDIR:-${REPO_ROOT}/work/swebench}"
-LOGS_ROOT="${REPO_ROOT}/logs"
+LOGS_ROOT="${WORKDIR}/logs"
 
 if [[ ! -d "${WORKDIR}" ]]; then
   echo "ERROR: WORKDIR does not exist: ${WORKDIR}" >&2
@@ -100,12 +100,12 @@ PY
 
 run_multilingual_loop() {
   local preds_json="${LOGS_ROOT}/swebench-multilingual/${MODEL}/preds.json"
-  local snapshot_jsonl="${WORKDIR}/runs/swebench-multilingual/${MODEL}-preds-partial.jsonl"
+  local snapshot_jsonl="${LOGS_ROOT}/swebench-multilingual/${MODEL}/preds-partial.jsonl"
   local total=300
   local run_id="${MODEL}-swebench-multilingual"
-  local report_dir="${WORKDIR}/runs/swebench-multilingual/reports"
+  local report_dir="${LOGS_ROOT}/swebench-multilingual/${MODEL}/eval"
 
-  mkdir -p "${WORKDIR}/runs/swebench-multilingual"
+  mkdir -p "${LOGS_ROOT}/swebench-multilingual/${MODEL}"
 
   while true; do
     if [[ ! -f "${preds_json}" ]]; then
@@ -168,7 +168,7 @@ run_live_multilang_loop() {
       local split="${splits[$i]}"
       local total="${totals[$i]}"
       local preds_json="${LOGS_ROOT}/swebench-live-multilang/${MODEL}/${split}/preds.json"
-      local out_dir="${WORKDIR}/runs/swebench-live-multilang/eval-results/${MODEL}/${split}"
+      local out_dir="${LOGS_ROOT}/swebench-live-multilang/${MODEL}/${split}/eval"
       local results_json="${out_dir}/results.json"
 
       if [[ -f "${results_json}" ]]; then
