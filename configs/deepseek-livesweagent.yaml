@@ -3,19 +3,8 @@
 
 agent:
   system_template: |
-    You are a helpful assistant that can interact multiple times with a computer shell to solve programming tasks.
-    Your response must contain exactly ONE bash code block with ONE command (or commands connected with && or ||).
-
-    Include a THOUGHT section before your command where you explain your reasoning process.  The required format for your response is shown below.
-    Failure to follow these rules will cause your response to be rejected. 
-    Format your response as follows:
-
-    THOUGHT: Your reasoning and analysis here
-
-    ```bash
-    your_command_here
-    ```
-    
+    You are a helpful assistant that can interact with a computer shell to solve programming tasks.
+    Use the bash tool to run commands.
   instance_template: |
     <pr_description>
     Consider the following PR description:
@@ -34,7 +23,7 @@ agent:
 
     For each response:
     1. Include a THOUGHT section explaining your reasoning and what you're trying to accomplish
-    2. Provide exactly ONE bash command to execute
+    2. Provide exactly ONE bash tool call to execute a command
 
     ## Important Boundaries
     - MODIFY: Regular source code files in /testbed (this is the working directory for all your subsequent commands)
@@ -67,32 +56,14 @@ agent:
     4. You write your next command
 
     Each response should include:
-    1. A **THOUGHT** section where you explain your reasoning and plan
-    2. A single bash code block with your command
-
-    Format your responses like this:
-
-    <format_example>
-    THOUGHT: Here I explain my reasoning process, analysis of the current situation,
-    and what I'm trying to accomplish with the command below.
-
-    ```bash
-    your_command_here
-    ```
-    </format_example>
-
-    Commands must be specified in a single bash code block:
-
-    ```bash
-    your_command_here
-    ```
+    1. A THOUGHT section where you explain your reasoning and plan
+    2. A single bash tool call with your command
 
     **CRITICAL REQUIREMENTS:**
     - Your response SHOULD include a THOUGHT section explaining your reasoning
-    - Your response MUST include EXACTLY ONE bash code block
-    - This bash block MUST contain EXACTLY ONE command (or a set of commands connected with && or ||)
-    - If you include zero or multiple bash blocks, or no command at all, YOUR RESPONSE WILL FAIL
-    - Do NOT try to run multiple independent commands in separate blocks in one response
+    - Your response MUST include EXACTLY ONE bash tool call with a single command
+    - If you include zero or multiple tool calls, your response will fail
+    - Do NOT try to run multiple independent commands in separate tool calls in one response
     - Directory or environment variable changes are not persistent. Every action is executed in a new subshell.
     - However, you can prefix any action with `MY_ENV_VAR=MY_VALUE cd /path/to/working/dir && ...` or write/load environment variables from files
 
@@ -100,33 +71,8 @@ agent:
     <example_response>
     THOUGHT: I need to understand the structure of the repository first. Let me check what files are in the current directory to get a better understanding of the codebase.
 
-    ```bash
-    ls -la
-    ```
+    [Makes bash tool call with {"command": "ls -la"} as arguments]
     </example_response>
-
-    Example of an INCORRECT response:
-    <example_response>
-    THOUGHT: I need to examine the codebase and then look at a specific file. I'll run multiple commands to do this.
-
-    ```bash
-    ls -la
-    ```
-
-    Now I'll read the file:
-
-    ```bash
-    cat file.txt
-    ```
-    </example_response>
-
-    If you need to run multiple commands, either:
-    1. Combine them in one block using && or ||
-    ```bash
-    command1 && command2 || echo "Error occurred"
-    ```
-
-    2. Wait for the first command to complete, see its output, then issue the next command in your following response.
 
     ## Environment Details
     - You have a full Linux shell environment
@@ -137,38 +83,21 @@ agent:
     ## Useful Command Examples
 
     ### Create a new file:
-    ```bash
-    cat <<'EOF' > newfile.py
-    import numpy as np
-    hello = "world"
-    print(hello)
-    EOF
-    ```
+    `cat <<'EOF' > newfile.py` ... `EOF`
 
     ### View file content:
-    ```bash
-    # View specific lines with numbers
-    nl -ba filename.py | sed -n '10,20p'
-    ```
+    `nl -ba filename.py | sed -n '10,20p'`
 
     ### Edit files with sed:
-    ```bash
-    # Replace all occurrences
-    sed -i 's/old_string/new_string/g' filename.py
-
-    # Replace only first occurrence
-    sed -i 's/old_string/new_string/' filename.py
-    ```
-
+    `sed -i 's/old_string/new_string/g' filename.py`
 
     ## Submission (Two-Step Process)
 
     When you've completed your work, you MUST submit using this two-step process:
 
     **Step 1: Stage your changes (separate command)**
-    ```bash
-    git add -A
-    ```
+    `git add -A`
+
     Review the output carefully for any warnings or errors:
     - Submodule warnings: You may need to exclude submodules with `git reset HEAD <submodule>`
     - Large file warnings: Consider if these files should be included
@@ -178,9 +107,7 @@ agent:
     You can preview your patch with `git diff --cached` before submitting.
 
     **Step 2: Submit your patch (separate command, AFTER step 1)**
-    ```bash
-    echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached
-    ```
+    `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached`
 
     **CRITICAL RULES:**
     - Do NOT include `git add` in your submission command - files must already be staged from Step 1
@@ -188,22 +115,19 @@ agent:
     - Any warnings or extra output in the submission will corrupt your patch
     - You cannot continue working after submitting
 
-
-    
     ## CRITICAL CONSTRAINTS (MANDATORY)
     - You MUST work inside /testbed only. Never write files in /tmp or outside /testbed.
     - Do NOT create placeholder or documentation-only files. Do actual code edits in the repository.
     - If you cannot find relevant files, you MUST search the repo (e.g., use find/rg) before any write.
     - Any command that only echoes a summary or writes to /tmp is invalid.
-    - Do NOT output XML/HTML-style tags (e.g., </files>, </output>, <files>).
-    
+
     </instructions>
   step_limit: 500
   cost_limit: 3.0
 
 environment:
   cwd: "/testbed"
-  timeout: 21600
+  timeout: 1800
   env:
     PAGER: cat
     MANPAGER: cat
@@ -245,22 +169,17 @@ model:
     </output_tail>
     {%- endif -%}
   format_error_template: |
-    Please always provide EXACTLY ONE action in triple backticks, found {{actions|length}} actions.
+    Tool call error. Every response needs to use the 'bash' tool at least once to execute commands.
 
-    Please format your action in triple backticks as shown in <response_example>.
-
-    <response_example>
-    Here are some thoughts about why you want to perform the action.
-
-    ```bash
-    <action>
-    ```
-    </response_example>
+    Call the bash tool with your command as the argument:
+    - Tool: bash
+    - Arguments: {"command": "your_command_here"}
 
     If you have completed your assignment, please consult the first message about how to
     submit your solution (you will not be able to continue working on this task after that).
   model_kwargs:
     max_completion_tokens: 65536
+    tool_choice: "required"
     stop:
       - "</files>"
       - "</output>"
