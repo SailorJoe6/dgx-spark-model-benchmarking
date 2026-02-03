@@ -216,7 +216,7 @@ environment:
     - "--platform=linux/amd64"
 
 model:
-  model_name: "hosted_vllm/Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
+  model_name: "{{MODEL_NAME}}"
   model_class: "litellm"
   cost_tracking: "ignore_errors"
   use_streaming: true

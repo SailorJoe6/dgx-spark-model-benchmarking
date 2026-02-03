@@ -24,6 +24,7 @@ This runbook documents how to execute the multilingual SWE-bench evaluations usi
   export DOCKER_DEFAULT_PLATFORM=linux/amd64
   ```
   Verify with: `docker run --rm --platform=linux/amd64 alpine:3.19 uname -m` (should print `x86_64`).
+  **Note:** binfmt registrations are not persistent across reboots. Re-run the binfmt install after any reboot.
 - Docker Hub rate limits can break evaluations. Authenticate before running harnesses:
   ```
   docker login
@@ -32,6 +33,23 @@ This runbook documents how to execute the multilingual SWE-bench evaluations usi
 - HuggingFace cache available at `~/Models/huggingface`.
 - HuggingFace token file at `~/.cache/huggingface/token`.
 - Adequate disk space for datasets and harness checkouts.
+
+## Blocked Workflow (Mandatory for Long Runs)
+
+Once any long-running evaluation starts, the project is considered **BLOCKED** until completion.
+
+Checklist:
+1. Update the active beads issue to **blocked** and note the run start timestamp.
+2. Update `docs/CURRENT_STATUS.md` with the run details and start time.
+3. Unblock only after the run completes or is explicitly stopped.
+
+## Memory Monitoring (Mandatory)
+
+Start the memory monitor **before** any long-running agentic run:
+
+```bash
+cd /home/sailorjoe6/Code/swebench-eval/work/swebench && ./scripts/monitor_memory.sh &
+```
 
 ## Directory Layout
 
@@ -84,9 +102,13 @@ All configs are based on `live-swe-agent/config/livesweagent.yaml` with these mo
 - **Model endpoint**: Points to local vLLM at `http://localhost:8000/v1`
 - **Cost tracking**: Set to `ignore_errors` (local inference has no cost)
 - **Working directory**: Set to `/testbed` (Docker container path)
+- **Docker platform**: `run_args` includes `--platform=linux/amd64` to run SWE-bench images on aarch64 hosts
+- **Output cap**: `model_kwargs.max_completion_tokens: 65536` (per Qwen3 guidance)
+- **XML stop sequences**: `model_kwargs.stop: ["</files>", "</output>"]` to prevent runaway XML tag hallucinations
 - **Submission command fix**: Includes `git add -A && git diff --cached` to capture patches
 - **Timeout template**: Added (required by mini-swe-agent but missing from base config)
 - **System info**: Hardcoded `Linux x86_64 (Docker container)` instead of Jinja2 variables
+- **Command timeout**: `environment.timeout: 21600` (6h) safety timeout for individual commands (no global evaluation timeout)
 
 ### Running Agentic Evaluations
 
@@ -115,6 +137,45 @@ done
 
 **Important**: Do NOT pass `--model` on the command line. The model is configured in the YAML file. Passing `--model` on the CLI overrides the config and causes model name mismatch errors.
 
+### Wrapper Scripts (Agentic)
+
+For reproducible runs, use the helper scripts under `scripts/agentic/`:
+
+**Run SWE-bench Multilingual:**
+```bash
+scripts/agentic/run_swebench_multilingual.sh \
+  qwen3 \
+  /home/sailorjoe6/Code/swebench-eval/work/swebench/configs/qwen3-livesweagent.yaml \
+  /home/sailorjoe6/Code/swebench-eval/logs/swebench-multilingual/qwen3/
+```
+
+**Run SWE-bench-Live MultiLang (all splits):**
+```bash
+scripts/agentic/run_swebench_live_multilang.sh \
+  qwen3 \
+  /home/sailorjoe6/Code/swebench-eval/work/swebench/configs/qwen3-livesweagent.yaml \
+  /home/sailorjoe6/Code/swebench-eval/logs/swebench-live-multilang/qwen3/
+```
+
+Script environment overrides:
+- `WORKDIR` (default: `<repo>/work/swebench`)
+- `WORKERS` (default: 1)
+- `CONTINUE_ON_ERROR` (default: 1, for live-multilang script)
+
+**Start/stop vLLM containers:**
+```bash
+# Start (model key: qwen3|deepseek|mixtral|gptoss)
+scripts/agentic/serve_vllm_model.sh qwen3
+
+# Stop
+scripts/agentic/stop_vllm_model.sh qwen3
+```
+
+vLLM script environment overrides:
+`VLLM_IMAGE`, `VLLM_PORT`, `VLLM_MAX_MODEL_LEN`, `VLLM_GPU_MEMORY_UTIL`,
+`VLLM_MAX_NUM_SEQS`, `VLLM_KV_CACHE_DTYPE`, `VLLM_EXTRA_ARGS`,
+`VLLM_HEALTH_URL`, `VLLM_HEALTH_TIMEOUT`.
+
 ### Config Validation Tests
 
 Run tests to verify all configs are well-formed:
@@ -126,7 +187,13 @@ python -m unittest tests.test_swebench_configs -v
 
 ## Direct Inference Harness Setup (Legacy)
 
-> **Note**: The sections below document the original direct inference approach using SWE-bench harness scripts. The project has pivoted to agentic evaluation (see above). These instructions are retained for reference.
+> **Note**: The sections below document the original direct inference approach using SWE-bench harness scripts. The project has pivoted to agentic evaluation (see above). These instructions are retained for reference only and should not be used for the current agentic runs.
+
+**Legacy script status (2026-02-02 audit):**
+1. `scripts/swebench_generate_predictions.py`: deprecated (direct inference only).
+2. `scripts/swebench_report_metrics.py`: keep (still useful for report aggregation).
+3. `scripts/swebench_pull_images.py`: keep (rate-limit mitigation).
+4. `scripts/swebench_live_prepare.py`: keep (patch SWE-bench-Live harness if needed).
 
 ### Harness Setup
 
@@ -174,7 +241,7 @@ Use the exact serve commands from the vLLM section below. Start one model at a t
 
 **Required vLLM parameters** (discovered via investigation in Jan 2026):
 - `--max-model-len 65536`: Limits context to 64K tokens
-- `--gpu-memory-utilization 0.85`: Prevents consuming all system memory
+- `--gpu-memory-utilization 0.80`: Provides better headroom on UMA than 0.85
 - `--max-num-seqs 1`: Limits concurrent sequences for single-agent evaluation
 
 Without these parameters, vLLM consumes ~104GB leaving only ~4GB for system operations, causing crashes during agent evaluation. With these parameters: model weights (~29GB) + KV cache (~70GB) + system (~11GB) = ~110GB stable usage.
@@ -193,7 +260,7 @@ docker run -d --name vllm-qwen3-coder --gpus all --ipc=host \
   nvcr.io/nvidia/vllm:25.12.post1-py3 \
   vllm serve "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8" \
   --max-model-len 65536 \
-  --gpu-memory-utilization 0.85 \
+  --gpu-memory-utilization 0.80 \
   --max-num-seqs 1
 ```
 
