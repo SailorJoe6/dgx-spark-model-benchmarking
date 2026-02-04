@@ -26,7 +26,6 @@ We evaluate against **two** multilingual SWE-bench datasets:
 ### Frameworks
 
 - **mini-swe-agent** - Lightweight agentic execution framework (forked with streaming support)
-- **live-swe-agent** - SWE-bench-tuned agent configs (our configs are based on `livesweagent_swebench.yaml`)
 - **SWE-bench / SWE-bench-Live** - Benchmark datasets and evaluation harnesses
 - **vLLM** - High-performance LLM serving on DGX Spark
 
@@ -34,7 +33,7 @@ We evaluate against **two** multilingual SWE-bench datasets:
 
 ```
 swebench-eval/
-├── configs/           # Model configs (based on live-swe-agent templates)
+├── configs/           # Model configs (maintained locally)
 ├── scripts/           # Helper scripts (generation, image pulling, memory monitoring)
 ├── tests/             # Test suite for configs and scripts
 ├── docs/              # Documentation
@@ -47,13 +46,12 @@ swebench-eval/
 | Repository | Purpose |
 |------------|---------|
 | [mini-swe-agent fork](https://github.com/SailorJoe6/mini-swe-agent) | Execution framework (with streaming support) |
-| [live-swe-agent](https://github.com/SWE-bench-Live/live-swe-agent) | SWE-bench-tuned agent configs (upstream reference) |
 | [SWE-bench-Live](https://github.com/SWE-bench-Live/SWE-bench-Live) | Benchmark dataset and evaluation harness |
 | [vLLM](https://github.com/vllm-project/vllm) | LLM serving |
 
 ## Model Configs
 
-Located in `configs/`, based on live-swe-agent's `livesweagent_swebench.yaml`:
+Located in `configs/`, maintained locally (originally inspired by upstream live-swe-agent settings):
 
 | Config | Model |
 |--------|-------|

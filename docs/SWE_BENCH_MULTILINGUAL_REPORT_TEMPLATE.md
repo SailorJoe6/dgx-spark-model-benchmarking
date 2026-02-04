@@ -169,8 +169,6 @@ This report presents agentic evaluation results for 4 coding models across 2 mul
 ### Agentic Framework
 - **mini-swe-agent repository**: `https://github.com/SWE-agent/mini-swe-agent/`
 - **mini-swe-agent commit**: [Record after cloning]
-- **live-swe-agent repository**: `https://github.com/OpenAutoCoder/live-swe-agent`
-- **live-swe-agent commit**: [Record after cloning]
 - **Configuration**: `config/livesweagent.yaml` (modified for local vLLM)
 - **Agent approach**: Bash-only commands, linear message history, iterative feedback
 - **Parallelism**: Sequential agent generation (--workers 1), parallel test evaluation (10 workers)

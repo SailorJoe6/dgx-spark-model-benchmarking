@@ -10,7 +10,6 @@ This repo contains the evaluation configs, scripts, and docs for SWE-bench Multi
   - `runs/` outputs (predictions, results, reports)
   - Submodules:
     - `work/swebench/mini-swe-agent`
-    - `work/swebench/live-swe-agent`
     - `work/swebench/SWE-bench`
     - `work/swebench/SWE-bench-Live`
 

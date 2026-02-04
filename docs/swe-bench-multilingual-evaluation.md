@@ -79,12 +79,9 @@ source /home/sailorjoe6/Code/swebench-eval/work/swebench/.venv/bin/activate
 pip install -e work/swebench/mini-swe-agent
 ```
 
-`live-swe-agent` is available at `work/swebench/live-swe-agent`.
-
-Record submodule commit hashes for reporting:
+Record submodule commit hash for reporting:
 ```bash
 cd /home/sailorjoe6/Code/swebench-eval/work/swebench/mini-swe-agent && git rev-parse HEAD
-cd /home/sailorjoe6/Code/swebench-eval/work/swebench/live-swe-agent && git rev-parse HEAD
 ```
 
 ### Model Configurations
@@ -98,7 +95,7 @@ Each model has a dedicated config file at `/home/sailorjoe6/Code/swebench-eval/w
 | `mixtral-livesweagent.yaml` | Mixtral-8x22B-Instruct-v0.1-AWQ | `hosted_vllm/MaziyarPanahi/Mixtral-8x22B-Instruct-v0.1-AWQ` |
 | `gptoss-livesweagent.yaml` | gpt-oss-120b | `hosted_vllm/openai/gpt-oss-120b` |
 
-All configs are based on `live-swe-agent/config/livesweagent.yaml` with these modifications:
+All configs are maintained locally (originally inspired by upstream live-swe-agent settings) with these modifications:
 - **Model endpoint**: Points to local vLLM at `http://localhost:8000/v1`
 - **Cost tracking**: Set to `ignore_errors` (local inference has no cost)
 - **Working directory**: Set to `/testbed` (Docker container path)
