@@ -33,7 +33,7 @@ EXPECTED_CONFIGS = {
     },
 }
 
-SUBMISSION_FINAL_CMD = "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached"
+SUBMISSION_FINAL_CMD = "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt"
 
 
 def _load_config(filename):
