@@ -150,6 +150,31 @@ def _eval_stats():
     return total, count, error_count, resolved, percent, model_dir
 
 
+def _summary_report_path(model: str) -> Path | None:
+    sweep = list((WORK / "SWE-bench").glob(f"*.{model}-swebench-multilingual.json"))
+    if not sweep:
+        return None
+    sweep.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return sweep[0]
+
+
+def _summary_report_counts(path: Path) -> dict:
+    try:
+        data = _load_json(path)
+    except Exception:
+        return {}
+    keys = (
+        "total_instances",
+        "submitted_instances",
+        "completed_instances",
+        "resolved_instances",
+        "unresolved_instances",
+        "empty_patch_instances",
+        "error_instances",
+    )
+    return {k: data.get(k) for k in keys if k in data}
+
+
 def _load_preds(paths: list[Path]) -> tuple[dict, Path | None]:
     preds_path = _select_preds_path(paths)
     if preds_path is None:
@@ -266,6 +291,13 @@ def main() -> int:
     print(f"- resolved: {resolved} / {reports} \u2192 {resolved_pct:.2f}%")
     if model_dir:
         print(f"- eval dir: {model_dir}")
+    summary_path = _summary_report_path("qwen3")
+    if summary_path:
+        summary_counts = _summary_report_counts(summary_path)
+        print(f"- summary report: {summary_path}")
+        if summary_counts:
+            summary_bits = ", ".join(f"{k.replace('_', ' ')}={v}" for k, v in summary_counts.items())
+            print(f"- summary counts: {summary_bits}")
     if eval_line:
         print(f"- process running: {eval_line}")
     else:

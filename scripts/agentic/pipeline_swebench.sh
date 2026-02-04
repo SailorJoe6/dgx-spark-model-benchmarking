@@ -134,10 +134,6 @@ run_multilingual_loop() {
 
     # Run evaluation (resumes via run_id)
     source "${WORKDIR}/.venv/bin/activate"
-    # NOTE: swebench.harness.run_evaluation (SWE-bench repo) ignores --report_dir
-    # and writes the report JSON to the current working directory instead. Until
-    # we can patch that upstream, we run in the SWE-bench repo and then move the
-    # report into LOGS_ROOT so eval artifacts land where the plan expects.
     (cd "${WORKDIR}/SWE-bench" && \
       python -m swebench.harness.run_evaluation \
         --dataset_name SWE-bench/SWE-bench_Multilingual \
@@ -146,12 +142,6 @@ run_multilingual_loop() {
         --max_workers "${WORKERS}" \
         --run_id "${run_id}" \
         --report_dir "${report_dir}")
-
-    # Move report JSON into the eval dir (see NOTE above).
-    report_file="${WORKDIR}/SWE-bench/${report_basename}"
-    if [[ -f "${report_file}" ]]; then
-      mv -f "${report_file}" "${report_dir}/${report_basename}"
-    fi
 
     if [[ "${count}" -ge "${total}" ]]; then
       echo "[multilingual] predictions complete (${count}/${total}); done."
