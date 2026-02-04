@@ -67,9 +67,13 @@ if command -v jq >/dev/null 2>&1; then
         content: .content,
         tool_calls: (
           .tool_calls // [] | map(
-            .function.arguments
-            | (try fromjson catch .)
-            | .command // .
+            if (.function? and .function.arguments?) then
+              (.function.arguments | (try fromjson catch .) | (if type == "object" and has("command") then .command else . end))
+            elif has("arguments") then
+              (.arguments | (try fromjson catch .) | (if type == "object" and has("command") then .command else . end))
+            else
+              .
+            end
           )
         )
       }

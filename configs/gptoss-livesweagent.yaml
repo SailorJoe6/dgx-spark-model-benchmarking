@@ -2,7 +2,9 @@
 
 agent:
   system_template: |
-    You are a helpful assistant that can interact with a computer shell to solve programming tasks.
+    You are a helpful assistant that interacts with a computer shell to solve programming tasks.
+    You reason out-loud, such that every response includes a bash tool call to help you solve the
+    programming task and a clear but concise description of your reasoning, the why behind the tool call.
   instance_template: |
     <pr_description>
     Consider the following PR description:
@@ -21,8 +23,8 @@ agent:
 
     For each response:
 
-    1. Include a THOUGHT section explaining your reasoning and what you're trying to accomplish
-    2. Provide exactly ONE bash command to execute
+    1. Include a detailed but concise description of your reasoning and what you're trying to accomplish
+    2. Provide at least ONE bash command to execute
 
     ## Important Boundaries
 
@@ -150,16 +152,12 @@ model:
     }
     {%- endif -%}
   format_error_template: |
-    Tool call error. Every response needs to use the 'bash' tool at least once to execute commands.
-
-    Call the bash tool with your command as the argument:
-    - Tool: bash
-    - Arguments: {"command": "your_command_here"}
+    Please provide a tool call to continue your work. 
 
     If you have completed your assignment, please consult the first message about how to
-    submit your solution (you will not be able to continue working on this task after that).
+    submit your solution.
   model_kwargs:
-    max_completion_tokens: 65536
+    max_completion_tokens: 4096
     # stop:
     #   - "</files>"
     #   - "</output>"
