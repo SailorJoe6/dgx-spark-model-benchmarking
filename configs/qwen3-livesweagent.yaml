@@ -98,17 +98,25 @@ agent:
     - binary or compiled files
     </IMPORTANT>
 
-    Step 1: Submit (EXACT command required)
+    Step 1: Create the patch file
+    Run `git diff -- path/to/file1 path/to/file2 > patch.txt` listing only the source files you modified.
+    Do NOT commit your changes.
+
+    Step 2: Verify your patch
+    Inspect patch.txt to confirm it only contains your intended changes and headers show `--- a/` and `+++ b/` paths.
+
+    Step 3: Submit (EXACT command required)
     You MUST use this EXACT command to submit:
 
     ```bash
-    echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached
+    echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt
     ```
 
     If the command fails (nonzero exit status), it will not submit.
 
     <CRITICAL>
-    - Submitting MUST be a separate command (not combined with other actions).
+    - Creating/viewing the patch and submitting it MUST be separate commands (not combined with &&).
+    - If you modify patch.txt after verifying, you SHOULD verify again before submitting.
     - You CANNOT continue working (reading, editing, testing) in any way on this task after submitting.
     </CRITICAL>
     </instructions>

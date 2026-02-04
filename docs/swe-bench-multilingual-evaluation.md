@@ -102,7 +102,7 @@ All configs are maintained locally (originally inspired by upstream live-swe-age
 - **Docker platform**: `run_args` includes `--platform=linux/amd64` to run SWE-bench images on aarch64 hosts
 - **Output cap**: `model_kwargs.max_completion_tokens: 65536` (per Qwen3 guidance)
 - **XML stop sequences**: Disabled (stop list commented out) due to Qwen3 tool-call malformed JSON bug; see `docs/CURRENT_STATUS.md` for context
-- **Submission command fix**: Includes `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && git diff --cached` to capture patches
+- **Submission command fix**: Use the default mini-swe-agent flow: create `patch.txt` via `git diff -- path/to/file1 path/to/file2 > patch.txt`, verify it, then submit with `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt`
 - **Timeout template**: Added (required by mini-swe-agent but missing from base config)
 - **System info**: Hardcoded `Linux x86_64 (Docker container)` instead of Jinja2 variables
 - **Command timeout**: `environment.timeout: 1800` (30m) safety timeout for individual commands (no global evaluation timeout)
