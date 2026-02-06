@@ -49,7 +49,7 @@ model_kwargs:
   tool_choice: required
 ```
 
-The agent sets `require_reasoning: true` on the model config. Model implementations then use the `BASH_TOOL_WITH_REASONING` schema (which adds a required `reasoning` string parameter to the bash tool) and validate that the field is non-empty on every tool call.
+The agent sets `require_reasoning: true` and `retry_missing_tool_calls: true` on the model config. Model implementations then use the `BASH_TOOL_WITH_REASONING` schema (which adds a required `reasoning` string parameter to the bash tool) and validate that the field is non-empty on every tool call.
 
 ### Tool Schema
 
@@ -62,6 +62,44 @@ With reasoning (`require_reasoning: true`):
 ```json
 {"name": "bash", "parameters": {"properties": {"reasoning": {"type": "string"}, "command": {"type": "string"}}, "required": ["reasoning", "command"]}}
 ```
+
+---
+
+## Graceful Tool-Call Recovery
+
+A one-shot retry mechanism that nudges the model to produce a tool call when it responds with plain text instead. This avoids polluting the conversation with format-error messages that can confuse subsequent reasoning.
+
+### Problem
+
+When the LLM responds without any tool calls, the agent raises a `FormatError`. The error message is appended to the conversation and the agent retries, but the LLM now has an error in its context that can derail subsequent turns. This happens frequently when models "think aloud" without wrapping their response in a tool call.
+
+### How It Works
+
+1. The model responds without any tool calls.
+2. Instead of raising `FormatError` immediately, the failed assistant response and a nudge message (`"You must respond using the bash tool."`) are appended to the conversation.
+3. The query is retried once with `tool_choice: "required"` injected for that single call only.
+4. **On success**: The response is returned normally. The nudge messages remain in the conversation as a visible trace in trajectories.
+5. **On failure**: The nudge messages are removed from the conversation and `FormatError` is raised as before, as if no retry happened.
+
+### Configuration
+
+The feature is controlled by `retry_missing_tool_calls` on the model config:
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `retry_missing_tool_calls` | `false` | When `true`, retry once with `tool_choice='required'` before raising `FormatError` |
+
+The `ReasoningToolCallAgent` enables this automatically. No YAML changes needed — the agent sets the flag programmatically, same as `require_reasoning`.
+
+### When Retry Is Skipped
+
+- `retry_missing_tool_calls` is `false` (default for all agents except `reasoning_tool_call`)
+- `tool_choice` is already `"required"` in config or `model_kwargs` (the API already enforced tool calls — retrying won't help)
+- The `FormatError` is for a reason other than missing tool calls (e.g., unknown tool name, invalid JSON, missing reasoning)
+
+### Cost Tracking
+
+Both the original and retry calls track cost via the existing cost pipeline. On success, the returned message's `extra.cost` includes the combined cost of both calls.
 
 ---
 
@@ -201,6 +239,7 @@ model:
   stream_guard_tag_threshold: 50       # Guard tag count threshold
   tool_choice: null                    # "required" to force tool calls
   require_reasoning: false             # Set automatically by reasoning_tool_call agent
+  retry_missing_tool_calls: false     # Set automatically by reasoning_tool_call agent
   set_cache_control: null              # "default_end" for Anthropic prompt caching
   format_error_template: "{{ error }}" # Jinja2 template for format errors
 ```
@@ -239,13 +278,13 @@ cd work/swebench/ralph-swe-agent
 python -m pytest -q --timeout=90
 ```
 
-Current test coverage (56 tests):
+Current test coverage (60 tests):
 
 | Module | Tests |
 |--------|-------|
 | `test_actions_toolcall` | 16 |
 | `test_actions_toolcall_response` | 6 |
-| `test_litellm_model` | 12 |
+| `test_litellm_model` | 16 |
 | `test_litellm_response_model` | 2 |
 | `test_context_window` | 3 |
 | `test_openai_utils` | 4 |

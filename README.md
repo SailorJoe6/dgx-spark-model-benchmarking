@@ -25,7 +25,7 @@ We evaluate against **two** multilingual SWE-bench datasets:
 
 ### Frameworks
 
-- **mini-swe-agent** - Lightweight agentic execution framework (forked with streaming support)
+- **ralph-swe-agent** - Lightweight agentic execution framework (forked from mini-swe-agent)
 - **SWE-bench / SWE-bench-Live** - Benchmark datasets and evaluation harnesses
 - **vLLM** - High-performance LLM serving on DGX Spark
 
@@ -45,7 +45,7 @@ swebench-eval/
 
 | Repository | Purpose |
 |------------|---------|
-| [mini-swe-agent fork](https://github.com/SailorJoe6/mini-swe-agent) | Execution framework (with streaming support) |
+| [ralph-swe-agent](https://github.com/SailorJoe6/ralph-swe-agent) | Execution framework forked from mini-swe-agent |
 | [SWE-bench-Live](https://github.com/SWE-bench-Live/SWE-bench-Live) | Benchmark dataset and evaluation harness |
 | [vLLM](https://github.com/vllm-project/vllm) | LLM serving |
 
@@ -66,13 +66,14 @@ Located in `configs/`, maintained locally (originally inspired by upstream live-
 - **Pipelined evaluation** - Run test harness in parallel with agent generation
 - **Memory-safe operation** - Optimized for DGX Spark's unified memory architecture (119GB)
 
-## mini-swe-agent Fork Enhancements
+## ralph-swe-agent Enhancements
 
-Our [fork](https://github.com/SailorJoe6/mini-swe-agent) is stacked on `origin/main` and currently adds:
+Our [fork](https://github.com/SailorJoe6/ralph-swe-agent) is based on mini-swe-agent and currently adds:
 
 - **LiteLLM streaming support** with usage fallback and a streaming guard circuit breaker (env vars documented in the fork).
 - **Live trajectory streaming** for SWE-bench runs, plus JSON-safe serialization for live JSONL and final trajectories.
 - **SWE-bench-Live docker_image support** in the swebench runner (uses dataset `docker_image` field).
+- **Graceful tool-call recovery** — one-shot retry with `tool_choice: required` when the model responds without tool calls, avoiding format-error pollution in the conversation.
 
 ## Usage
 
