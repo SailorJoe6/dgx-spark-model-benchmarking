@@ -7,3 +7,7 @@
 [submodule "work/swebench/SWE-bench-Live"]
 	path = work/swebench/SWE-bench-Live
 	url = https://github.com/microsoft/SWE-bench-Live.git
+[submodule "work/swebench/ralph-swe-agent"]
+	path = work/swebench/ralph-swe-agent
+	url = git@github.com:SailorJoe6/ralph-swe-agent.git
+	branch = main
